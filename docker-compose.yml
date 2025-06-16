@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   akab-mcp-server:
     build: .
@@ -8,7 +6,7 @@ services:
       - MCP_SERVER_NAME=AKAB-Dev
       - DATA_PATH=/data/akab
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
-      - PORT=${PORT:-8000}
+      - PORT=8000  # Fixed: Always use 8000 inside container
       # API Keys for remote providers
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
@@ -17,7 +15,7 @@ services:
       - ./data/akab:/data/akab
       - ./src:/app/src:ro  # Read-only source mount for development
     ports:
-      - "${PORT:-8000}:8000"
+      - "8001:8000"  # Fixed: Map external 8001 to internal 8000
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
@@ -41,5 +39,7 @@ networks:
   akab-network:
     driver: bridge
 
-volumes:
-  # redis_data:
+# Remove the empty volumes section that was causing the error
+# Uncomment below when redis is enabled
+# volumes:
+#   redis_data:

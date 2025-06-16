@@ -99,6 +99,7 @@ Add to your Claude Desktop configuration:
 ### 4. Run Your First Experiment
 
 In Claude Desktop:
+
 ```
 Use the akab_get_meta_prompt tool to load instructions, then run experiments!
 ```
@@ -170,14 +171,17 @@ AKAB uses a campaign-based folder structure for clarity:
 AKAB provides a comprehensive toolkit via MCP:
 
 ### Meta Configuration
+
 - `akab_get_meta_prompt()` - Load self-configuring instructions
 
 ### Experiment Management
+
 - `akab_get_next_experiment()` - Queue management
 - `akab_get_exp_prompt(exp_id)` - Retrieve prompts
 - `akab_save_exp_result(exp_id, result, metadata)` - Store results
 
 ### Campaign Operations
+
 - `akab_create_campaign(config)` - Initialize campaigns
 - `akab_list_campaigns()` - View all campaigns
 - `akab_switch_campaign(campaign_id)` - Change active campaign
@@ -185,6 +189,7 @@ AKAB provides a comprehensive toolkit via MCP:
 - `akab_analyze_results(campaign_id)` - Generate insights
 
 ### Remote Execution
+
 - `akab_batch_execute_remote(campaign_id)` - Launch batch runs
 - `akab_get_execution_status()` - Monitor progress
 
@@ -198,6 +203,7 @@ AKAB includes sophisticated cost tracking:
 - **Cost/quality analysis** in results
 
 Example cost warning:
+
 ```
 ⚠️ About to execute 50 experiments across 3 providers
 Estimated cost: $12.50
@@ -217,7 +223,9 @@ Estimated cost: $12.50
 ## 🔬 Example Use Cases
 
 ### 1. Compare Model Creativity
+
 Test how different models approach creative writing tasks:
+
 ```python
 {
     "name": "creativity-benchmark",
@@ -229,7 +237,9 @@ Test how different models approach creative writing tasks:
 ```
 
 ### 2. Technical Accuracy Testing
+
 Evaluate code generation capabilities:
+
 ```python
 {
     "name": "code-generation-test",
@@ -241,7 +251,9 @@ Evaluate code generation capabilities:
 ```
 
 ### 3. Cost/Performance Optimization
+
 Find the best model for your budget:
+
 ```python
 {
     "name": "budget-optimization",
@@ -255,20 +267,26 @@ Find the best model for your budget:
 ## 🚀 Advanced Features
 
 ### Parallel Execution
+
 Run experiments across providers simultaneously:
+
 ```python
 config["execution_mode"] = "parallel"
 config["max_concurrent"] = 5
 ```
 
 ### Custom Evaluation Metrics
+
 Define your own scoring functions:
+
 ```python
 config["evaluators"] = ["innovation_score", "practical_value", "custom_metric"]
 ```
 
 ### Knowledge Base Injection
+
 Guide model behavior with context:
+
 ```python
 config["knowledge_bases"] = ["domain_expertise.md", "style_guide.md"]
 ```

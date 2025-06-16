@@ -1,5 +1,4 @@
-# Core MCP dependencies
-mcp-server>=1.2.0
+# Core dependencies
 fastapi>=0.104.0
 uvicorn[standard]>=0.24.0
 

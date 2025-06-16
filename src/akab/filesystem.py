@@ -214,8 +214,18 @@ class FileSystemManager:
     
     async def load_meta_prompt(self, prompt_type: str = "execution") -> str:
         """Load meta prompt for AKAB operations"""
-        # Try to load from file first
-        if self.meta_prompt_path.exists():
+        # For campaign_template, load from specific file
+        if prompt_type == "campaign_template":
+            template_path = self.base_path / "campaign_template.md"
+            if template_path.exists():
+                try:
+                    async with aiofiles.open(template_path, 'r', encoding='utf-8') as f:
+                        return await f.read()
+                except Exception as e:
+                    logger.error(f"Error loading campaign template: {e}")
+        
+        # Try to load from meta_prompt.md for execution type
+        if prompt_type == "execution" and self.meta_prompt_path.exists():
             try:
                 async with aiofiles.open(self.meta_prompt_path, 'r', encoding='utf-8') as f:
                     return await f.read()
@@ -403,3 +413,189 @@ Help users create well-structured campaigns for systematic AI testing.
         """Set current active campaign ID"""
         self.current_campaign_id = campaign_id
         logger.info(f"Switched to campaign: {campaign_id}")
+    
+    # ============= Phase 1 Enhancement Methods =============
+    
+    async def save_template(
+        self,
+        name: str,
+        content: str,
+        description: str = ""
+    ) -> bool:
+        """Save a prompt template"""
+        template_path = self.templates_dir / name
+        
+        try:
+            # Save template content
+            async with aiofiles.open(template_path, 'w', encoding='utf-8') as f:
+                await f.write(content)
+            
+            # Save metadata if description provided
+            if description:
+                metadata = {
+                    "name": name,
+                    "description": description,
+                    "created_at": datetime.now().isoformat(),
+                    "word_count": len(content.split())
+                }
+                metadata_path = self.templates_dir / f"{name}.meta.json"
+                async with aiofiles.open(metadata_path, 'w') as f:
+                    await f.write(json.dumps(metadata, indent=2))
+            
+            logger.info(f"Template saved: {name}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error saving template {name}: {e}")
+            return False
+    
+    async def list_templates(self) -> List[Dict[str, Any]]:
+        """List all available templates"""
+        templates = []
+        
+        try:
+            for template_file in self.templates_dir.glob("*.md"):
+                template_info = {
+                    "name": template_file.name,
+                    "path": str(template_file.relative_to(self.base_path)),
+                    "size": template_file.stat().st_size,
+                    "modified": datetime.fromtimestamp(template_file.stat().st_mtime).isoformat()
+                }
+                
+                # Load metadata if exists
+                metadata_path = self.templates_dir / f"{template_file.name}.meta.json"
+                if metadata_path.exists():
+                    try:
+                        async with aiofiles.open(metadata_path, 'r') as f:
+                            metadata = json.loads(await f.read())
+                            template_info["description"] = metadata.get("description", "")
+                            template_info["created_at"] = metadata.get("created_at")
+                    except:
+                        pass
+                
+                templates.append(template_info)
+            
+            return templates
+            
+        except Exception as e:
+            logger.error(f"Error listing templates: {e}")
+            return []
+    
+    async def get_template_metadata(self, name: str) -> Optional[Dict[str, Any]]:
+        """Get template metadata"""
+        metadata_path = self.templates_dir / f"{name}.meta.json"
+        
+        if not metadata_path.exists():
+            return None
+        
+        try:
+            async with aiofiles.open(metadata_path, 'r') as f:
+                return json.loads(await f.read())
+        except Exception as e:
+            logger.error(f"Error loading template metadata: {e}")
+            return None
+    
+    # ============= Phase 2 Enhancement Methods =============
+    
+    async def save_knowledge_base(
+        self,
+        name: str,
+        content: str,
+        description: str = ""
+    ) -> bool:
+        """Save a knowledge base document"""
+        kb_path = self.kb_dir / name
+        
+        try:
+            # Save KB content
+            async with aiofiles.open(kb_path, 'w', encoding='utf-8') as f:
+                await f.write(content)
+            
+            # Save metadata if description provided
+            if description:
+                metadata = {
+                    "name": name,
+                    "description": description,
+                    "created_at": datetime.now().isoformat(),
+                    "size": len(content)
+                }
+                metadata_path = self.kb_dir / f"{name}.meta.json"
+                async with aiofiles.open(metadata_path, 'w') as f:
+                    await f.write(json.dumps(metadata, indent=2))
+            
+            logger.info(f"Knowledge base saved: {name}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error saving knowledge base {name}: {e}")
+            return False
+    
+    async def list_knowledge_bases(self) -> List[Dict[str, Any]]:
+        """List all available knowledge bases"""
+        kbs = []
+        
+        try:
+            for kb_file in self.kb_dir.glob("*.md"):
+                kb_info = {
+                    "name": kb_file.name,
+                    "path": str(kb_file.relative_to(self.base_path)),
+                    "size": kb_file.stat().st_size,
+                    "modified": datetime.fromtimestamp(kb_file.stat().st_mtime).isoformat()
+                }
+                
+                # Load metadata if exists
+                metadata_path = self.kb_dir / f"{kb_file.name}.meta.json"
+                if metadata_path.exists():
+                    try:
+                        async with aiofiles.open(metadata_path, 'r') as f:
+                            metadata = json.loads(await f.read())
+                            kb_info["description"] = metadata.get("description", "")
+                            kb_info["created_at"] = metadata.get("created_at")
+                    except:
+                        pass
+                
+                kbs.append(kb_info)
+            
+            return kbs
+            
+        except Exception as e:
+            logger.error(f"Error listing knowledge bases: {e}")
+            return []
+    
+    async def save_export(
+        self,
+        campaign_id: str,
+        export_data: Dict[str, Any]
+    ) -> str:
+        """Save campaign export file"""
+        exports_dir = self.base_path / "exports"
+        exports_dir.mkdir(exist_ok=True)
+        
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        export_filename = f"{campaign_id}_export_{timestamp}.json"
+        export_path = exports_dir / export_filename
+        
+        try:
+            async with aiofiles.open(export_path, 'w') as f:
+                await f.write(json.dumps(export_data, indent=2))
+            
+            logger.info(f"Campaign exported: {export_path}")
+            return str(export_path.relative_to(self.base_path))
+            
+        except Exception as e:
+            logger.error(f"Error saving export: {e}")
+            raise
+    
+    async def load_analysis(self, campaign_id: str) -> Optional[Dict[str, Any]]:
+        """Load campaign analysis if exists"""
+        analysis_path = self.results_dir / campaign_id / "analysis.json"
+        
+        if not analysis_path.exists():
+            return None
+        
+        try:
+            async with aiofiles.open(analysis_path, 'r') as f:
+                return json.loads(await f.read())
+        except Exception as e:
+            logger.error(f"Error loading analysis: {e}")
+            return None

@@ -179,6 +179,22 @@ AKAB_get_current_campaign() → dict     # Current campaign info
 # Remote execution (NEW)
 AKAB_batch_execute_remote(campaign_id) → dict  # Launch batch execution
 AKAB_get_execution_status() → dict     # Monitor remote progress
+
+# Template management (NEW)
+AKAB_save_template(name, content, desc) → dict  # Save reusable prompt
+AKAB_list_templates() → dict           # List available templates
+AKAB_preview_template(name) → dict     # Preview template content
+
+# Campaign evolution (NEW)  
+AKAB_clone_campaign(source, new, mods) → dict  # Clone & modify campaign
+
+# Knowledge base management (NEW)
+AKAB_save_knowledge_base(name, content, desc) → dict  # Save KB document
+AKAB_list_knowledge_bases() → dict      # List available KBs
+
+# Export/Import (NEW)
+AKAB_export_campaign(id, include_results) → dict  # Export campaign
+AKAB_import_campaign(data, new_id) → dict  # Import campaign
 ```
 
 ### Design Principles
@@ -503,6 +519,232 @@ COST_PER_1K_TOKENS = {
 
 ---
 
+## ASR-011: Template Management and Campaign Evolution
+
+**Status**: APPROVED  
+**Date**: 2025-06-16  
+**Author**: Ivan Saorin  
+
+### Context
+
+Users need flexibility in prompt management and campaign iteration for effective experimentation.
+
+### Decision
+
+Implement **template management system** and **campaign cloning** for iterative experimentation.
+
+### Features Implemented
+
+#### Template Management
+
+```python
+# Save reusable prompts
+akab_save_template(name, content, description)
+
+# Browse available templates
+akab_list_templates()
+
+# Preview before use
+akab_preview_template(name)
+```
+
+#### Campaign Evolution
+
+```python
+# Clone and modify campaigns
+akab_clone_campaign(
+    source_campaign_id,
+    new_campaign_id,
+    modifications  # Optional changes
+)
+```
+
+### Design Principles
+
+#### Flexibility First
+
+- Direct prompt content OR template reference
+- No forced structure or workflow
+- User controls organization
+
+#### Iteration Support
+
+- Clone successful campaigns
+- Modify specific parameters
+- Track campaign lineage
+- Preserve experimental history
+
+#### Metadata Preservation
+
+- Template descriptions
+- Creation timestamps
+- Usage statistics
+- Campaign genealogy
+
+### File Structure
+
+```
+/templates/
+├── template_name.md          # Template content
+└── template_name.md.meta.json  # Metadata
+```
+
+### Consequences
+
+#### Positive
+
+- ✅ Rapid experimentation iteration
+- ✅ Prompt reuse across campaigns
+- ✅ Clear evolution tracking
+- ✅ Reduced duplication
+- ✅ Knowledge accumulation
+
+#### Negative
+
+- ❌ No template versioning (yet)
+- ❌ No template variables (Phase 2)
+- ❌ Manual template management
+
+#### Future Enhancements
+
+- Template variables with substitution
+- Template inheritance/composition
+- Version control integration
+- Template marketplace/sharing
+
+---
+
+## ASR-012: Template Variables and Knowledge Management
+
+**Status**: APPROVED  
+**Date**: 2025-06-16  
+**Author**: Ivan Saorin  
+
+### Context
+
+Users need dynamic prompt generation and centralized knowledge management for sophisticated experimentation.
+
+### Decision
+
+Implement **template variables**, **knowledge base management**, and **campaign portability** features.
+
+### Features Implemented
+
+#### Template Variables
+
+```python
+# Template with variables
+"Analyze {{topic}} for {{audience}} in {{length}}"
+
+# Campaign with substitution
+{
+  "prompt_template": "analysis.md",
+  "template_variables": {
+    "topic": "quantum computing",
+    "audience": "executives",
+    "length": "500 words"
+  }
+}
+```
+
+#### Knowledge Base Integration
+
+```python
+# Save domain knowledge
+akab_save_knowledge_base(
+    "ml_concepts.md",
+    content,
+    "Machine learning reference"
+)
+
+# Use in campaigns
+{
+  "knowledge_base": "ml_concepts.md"
+}
+```
+
+#### Campaign Portability
+
+```python
+# Export campaign + results
+export_data = akab_export_campaign(
+    "production-campaign",
+    include_results=True
+)
+
+# Import to new environment
+akab_import_campaign(
+    export_data,
+    "staging-campaign"
+)
+```
+
+### Design Principles
+
+#### Variable Substitution
+
+- Simple `{{variable}}` syntax
+- Type-agnostic values
+- Graceful handling of missing vars
+- No nested substitution (v1)
+
+#### Knowledge Separation
+
+- Prompts: Instructions/tasks
+- Knowledge: Domain information
+- Templates: Reusable structures
+- Clean separation of concerns
+
+#### Export Format
+
+```json
+{
+  "export_version": "1.0",
+  "export_date": "ISO-8601",
+  "campaign": {...},
+  "experiments": [...],
+  "analysis": {...}
+}
+```
+
+### File Organization
+
+```
+/data/akab/
+├── templates/          # Prompt templates
+├── knowledge_bases/    # Domain knowledge
+├── exports/           # Campaign exports
+│   └── campaign_export_TIMESTAMP.json
+└── ...
+```
+
+### Consequences
+
+#### Positive
+
+- ✅ Dynamic prompt generation
+- ✅ Knowledge reuse across campaigns
+- ✅ Environment portability
+- ✅ Experiment reproducibility
+- ✅ Reduced prompt duplication
+
+#### Negative
+
+- ❌ No complex variable logic
+- ❌ No conditional templates
+- ❌ Manual variable validation
+- ❌ No template inheritance
+
+#### Future Enhancements
+
+- Nested variable substitution
+- Conditional template sections
+- Variable type validation
+- Template composition/inheritance
+- Knowledge base versioning
+
+---
+
 ## Implementation Roadmap (UPDATED)
 
 ### Phase 1: Foundation (COMPLETE)
@@ -519,6 +761,11 @@ COST_PER_1K_TOKENS = {
 - [x] Campaign and experiment management
 - [x] Meta-prompt self-configuration system
 - [x] Comprehensive error handling and logging
+- [x] Template management system
+- [x] Campaign cloning functionality
+- [x] Template variables with substitution
+- [x] Knowledge base management
+- [x] Campaign export/import
 
 ### Phase 3: Remote Providers (CURRENT)
 

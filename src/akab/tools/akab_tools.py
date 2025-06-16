@@ -40,6 +40,175 @@ class AKABTools:
                 "message": str(e)
             }
     
+    # ============= Phase 2 Enhancements =============
+    
+    async def save_knowledge_base(
+        self,
+        name: str,
+        content: str,
+        description: str = ""
+    ) -> Dict[str, Any]:
+        """Save a knowledge base document"""
+        try:
+            # Validate name
+            if not name or not name.strip():
+                return {
+                    "status": "error",
+                    "message": "Knowledge base name cannot be empty"
+                }
+            
+            # Ensure .md extension
+            if not name.endswith('.md'):
+                name = f"{name}.md"
+            
+            # Check if KB already exists
+            existing = await self.fs.load_knowledge_base(name)
+            if existing:
+                return {
+                    "status": "error",
+                    "message": f"Knowledge base '{name}' already exists. Use a different name or delete the existing KB first."
+                }
+            
+            # Save KB
+            success = await self.fs.save_knowledge_base(name, content, description)
+            
+            if success:
+                return {
+                    "status": "success",
+                    "kb_name": name,
+                    "message": f"Knowledge base '{name}' saved successfully",
+                    "description": description
+                }
+            else:
+                return {
+                    "status": "error",
+                    "message": "Failed to save knowledge base"
+                }
+                
+        except Exception as e:
+            logger.error(f"Error saving knowledge base: {e}")
+            return {
+                "status": "error",
+                "message": str(e)
+            }
+    
+    async def list_knowledge_bases(self) -> Dict[str, Any]:
+        """List available knowledge bases"""
+        try:
+            kbs = await self.fs.list_knowledge_bases()
+            
+            return {
+                "status": "success",
+                "knowledge_bases": kbs,
+                "total_kbs": len(kbs)
+            }
+            
+        except Exception as e:
+            logger.error(f"Error listing knowledge bases: {e}")
+            return {
+                "status": "error",
+                "message": str(e)
+            }
+    
+    async def export_campaign(
+        self,
+        campaign_id: str,
+        include_results: bool = True
+    ) -> Dict[str, Any]:
+        """Export campaign configuration and optionally results"""
+        try:
+            # Load campaign
+            campaign = await self.fs.load_campaign(campaign_id)
+            if not campaign:
+                return {
+                    "status": "error",
+                    "message": f"Campaign '{campaign_id}' not found"
+                }
+            
+            export_data = {
+                "export_version": "1.0",
+                "export_date": datetime.now().isoformat(),
+                "campaign": campaign
+            }
+            
+            # Include results if requested
+            if include_results:
+                experiments = []
+                for exp_id in campaign.get("completed_experiments", []):
+                    exp = await self.fs.load_experiment(campaign_id, exp_id)
+                    if exp:
+                        experiments.append(exp)
+                
+                export_data["experiments"] = experiments
+                
+                # Include analysis if available
+                analysis = await self.fs.load_analysis(campaign_id)
+                if analysis:
+                    export_data["analysis"] = analysis
+            
+            # Save export file
+            export_path = await self.fs.save_export(campaign_id, export_data)
+            
+            return {
+                "status": "success",
+                "campaign_id": campaign_id,
+                "export_path": export_path,
+                "included_results": include_results,
+                "message": f"Campaign '{campaign_id}' exported successfully"
+            }
+            
+        except Exception as e:
+            logger.error(f"Error exporting campaign: {e}")
+            return {
+                "status": "error",
+                "message": str(e)
+            }
+    
+    async def import_campaign(
+        self,
+        export_data: Dict[str, Any],
+        new_campaign_id: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Import campaign from exported configuration"""
+        try:
+            # Validate export data
+            if "campaign" not in export_data:
+                return {
+                    "status": "error",
+                    "message": "Invalid export data: missing 'campaign' field"
+                }
+            
+            campaign = export_data["campaign"].copy()
+            original_id = campaign["id"]
+            
+            # Use new ID if provided
+            if new_campaign_id:
+                campaign["id"] = new_campaign_id
+            else:
+                # Generate unique ID
+                campaign["id"] = f"{original_id}-import-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+            
+            # Reset campaign state
+            campaign["completed_experiments"] = []
+            campaign["imported_from"] = original_id
+            campaign["imported_at"] = datetime.now().isoformat()
+            
+            # Create the campaign
+            result = await self.create_campaign(campaign)
+            
+            if result["status"] == "success":
+                result["imported_from"] = original_id
+                result["message"] = f"Campaign imported successfully as '{campaign['id']}'"
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error importing campaign: {e}")
+            return {
+                "status": "error",
+                "message": str(e)
+            }
+    
     async def get_next_experiment(self) -> Dict[str, Any]:
         """Get the next experiment in the current campaign"""
         try:
@@ -280,6 +449,13 @@ class AKABTools:
                     "message": f"Missing required fields: {', '.join(missing)}"
                 }
             
+            # CRITICAL: Require either prompt_template or prompt_content
+            if not config.get("prompt_template") and not config.get("prompt_content"):
+                return {
+                    "status": "error",
+                    "message": "Campaign MUST include either 'prompt_template' (template name) or 'prompt_content' (direct prompt text)"
+                }
+            
             # Check if campaign already exists
             existing = await self.fs.load_campaign(config["id"])
             if existing:
@@ -298,7 +474,11 @@ class AKABTools:
                 "completed_experiments": [],
                 "created_at": datetime.now().isoformat(),
                 "config": config,
-                "current_experiment": 1
+                "current_experiment": 1,
+                "prompt_template": config.get("prompt_template"),
+                "prompt_content": config.get("prompt_content"),
+                "template_variables": config.get("template_variables", {}),
+                "knowledge_base": config.get("knowledge_base")
             }
             
             # Estimate cost if remote providers
@@ -682,50 +862,233 @@ class AKABTools:
         experiment_id: str
     ) -> str:
         """Generate prompt for an experiment"""
-        # Load template if specified
+        # Get prompt content from campaign
+        prompt_base = ""
+        
+        # Option 1: Load from template
         template_name = campaign.get("prompt_template")
         if template_name:
             template = await self.fs.load_template(template_name)
             if template:
-                return template
+                prompt_base = template
+            else:
+                raise ValueError(f"Template '{template_name}' not found!")
         
-        # Load knowledge base if specified
-        kb_content = ""
+        # Option 2: Use direct prompt content
+        elif campaign.get("prompt_content"):
+            prompt_base = campaign["prompt_content"]
+        
+        # This should never happen due to validation
+        else:
+            raise ValueError("No prompt template or content found in campaign!")
+        
+        # Apply template variables if provided
+        template_vars = campaign.get("template_variables", {})
+        if template_vars:
+            prompt_base = self._apply_template_variables(prompt_base, template_vars)
+        
+        # Add knowledge base if specified
         kb_name = campaign.get("knowledge_base")
         if kb_name:
             kb = await self.fs.load_knowledge_base(kb_name)
             if kb:
-                kb_content = f"\n\n## Knowledge Base\n\n{kb}\n\n"
+                prompt_base = f"{prompt_base}\n\n## Knowledge Base\n\n{kb}"
         
-        # Generate default prompt
+        # Add experiment header
         exp_num = int(experiment_id.split("_")[1])
-        
         return f"""# Experiment {exp_num} - {campaign.get('name', 'Unknown Campaign')}
 
 {campaign.get('description', '')}
 
-{kb_content}
-
-## Task
-
-Please provide a comprehensive response to the following challenge:
-
-Design an innovative solution for improving hybrid work collaboration in a 500-employee technology company. Consider:
-
-1. Technical infrastructure needs
-2. Cultural and social aspects
-3. Productivity measurement
-4. Employee well-being
-5. Cost-effectiveness
-
-Be creative and think outside conventional approaches. Provide specific, actionable recommendations.
-
-## Response Guidelines
-
-- Be innovative but practical
-- Include specific implementation steps
-- Consider potential challenges
-- Provide measurable success criteria
-- Think holistically about the problem
-
-Your response should demonstrate both creativity and feasibility."""
+{prompt_base}"""
+    
+    def _apply_template_variables(self, template: str, variables: Dict[str, Any]) -> str:
+        """Apply variable substitution to template"""
+        import re
+        
+        # Find all {{variable}} patterns
+        pattern = r'\{\{(\w+)\}\}'
+        
+        def replace_var(match):
+            var_name = match.group(1)
+            if var_name in variables:
+                return str(variables[var_name])
+            else:
+                # Keep original if variable not provided
+                return match.group(0)
+        
+        return re.sub(pattern, replace_var, template)
+    
+    # ============= Phase 1 Enhancements =============
+    
+    async def save_template(
+        self,
+        name: str,
+        content: str,
+        description: str = ""
+    ) -> Dict[str, Any]:
+        """Save a new prompt template"""
+        try:
+            # Validate name
+            if not name or not name.strip():
+                return {
+                    "status": "error",
+                    "message": "Template name cannot be empty"
+                }
+            
+            # Ensure .md extension
+            if not name.endswith('.md'):
+                name = f"{name}.md"
+            
+            # Check if template already exists
+            existing = await self.fs.load_template(name)
+            if existing:
+                return {
+                    "status": "error",
+                    "message": f"Template '{name}' already exists. Use a different name or delete the existing template first."
+                }
+            
+            # Save template
+            success = await self.fs.save_template(name, content, description)
+            
+            if success:
+                return {
+                    "status": "success",
+                    "template_name": name,
+                    "message": f"Template '{name}' saved successfully",
+                    "description": description
+                }
+            else:
+                return {
+                    "status": "error",
+                    "message": "Failed to save template"
+                }
+                
+        except Exception as e:
+            logger.error(f"Error saving template: {e}")
+            return {
+                "status": "error",
+                "message": str(e)
+            }
+    
+    async def list_templates(self) -> Dict[str, Any]:
+        """List available templates with descriptions"""
+        try:
+            templates = await self.fs.list_templates()
+            
+            return {
+                "status": "success",
+                "templates": templates,
+                "total_templates": len(templates)
+            }
+            
+        except Exception as e:
+            logger.error(f"Error listing templates: {e}")
+            return {
+                "status": "error",
+                "message": str(e)
+            }
+    
+    async def preview_template(self, name: str) -> Dict[str, Any]:
+        """Preview template content before using"""
+        try:
+            # Ensure .md extension
+            if not name.endswith('.md'):
+                name = f"{name}.md"
+            
+            content = await self.fs.load_template(name)
+            
+            if content is None:
+                return {
+                    "status": "error",
+                    "message": f"Template '{name}' not found"
+                }
+            
+            # Get metadata if available
+            metadata = await self.fs.get_template_metadata(name)
+            
+            return {
+                "status": "success",
+                "template_name": name,
+                "content": content,
+                "description": metadata.get("description", "") if metadata else "",
+                "created_at": metadata.get("created_at") if metadata else None,
+                "word_count": len(content.split())
+            }
+            
+        except Exception as e:
+            logger.error(f"Error previewing template: {e}")
+            return {
+                "status": "error",
+                "message": str(e)
+            }
+    
+    async def clone_campaign(
+        self,
+        source_campaign_id: str,
+        new_campaign_id: str,
+        modifications: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """Clone an existing campaign with optional modifications"""
+        try:
+            # Load source campaign
+            source = await self.fs.load_campaign(source_campaign_id)
+            if not source:
+                return {
+                    "status": "error",
+                    "message": f"Source campaign '{source_campaign_id}' not found"
+                }
+            
+            # Check if new campaign already exists
+            existing = await self.fs.load_campaign(new_campaign_id)
+            if existing:
+                return {
+                    "status": "error",
+                    "message": f"Campaign '{new_campaign_id}' already exists"
+                }
+            
+            # Create new campaign config
+            new_config = {
+                "id": new_campaign_id,
+                "name": source.get("name", "") + " (Clone)",
+                "description": source.get("description", ""),
+                "providers": source.get("providers", ["anthropic-local"]),
+                "total_experiments": source.get("total_experiments", 1),
+                "prompt_template": source.get("prompt_template"),
+                "prompt_content": source.get("prompt_content"),
+                "template_variables": source.get("template_variables", {}),
+                "knowledge_base": source.get("knowledge_base"),
+                "evaluation_metrics": source.get("evaluation_metrics", []),
+                "cloned_from": source_campaign_id,
+                "cloned_at": datetime.now().isoformat()
+            }
+            
+            # Apply modifications if provided
+            if modifications:
+                # Update name if modified
+                if "name" in modifications:
+                    new_config["name"] = modifications["name"]
+                else:
+                    # Only append (Clone) if name wasn't explicitly set
+                    new_config["name"] = new_config["name"]
+                
+                # Apply other modifications
+                for key, value in modifications.items():
+                    if key != "id":  # Don't allow ID override
+                        new_config[key] = value
+            
+            # Create the new campaign
+            result = await self.create_campaign(new_config)
+            
+            if result["status"] == "success":
+                result["cloned_from"] = source_campaign_id
+                result["message"] = f"Campaign '{new_campaign_id}' cloned successfully from '{source_campaign_id}'"
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error cloning campaign: {e}")
+            return {
+                "status": "error",
+                "message": str(e)
+            }

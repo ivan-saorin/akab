@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  akab-mcp-server:
+    build: .
+    container_name: akab-mcp-server
+    environment:
+      - MCP_SERVER_NAME=AKAB-Dev
+      - DATA_PATH=/data/akab
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - PORT=${PORT:-8000}
+      # API Keys for remote providers
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+    volumes:
+      - ./data/akab:/data/akab
+      - ./src:/app/src:ro  # Read-only source mount for development
+    ports:
+      - "${PORT:-8000}:8000"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - akab-network
+
+  # Optional: Redis for future state management
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: akab-redis
+  #   volumes:
+  #     - redis_data:/data
+  #   networks:
+  #     - akab-network
+
+networks:
+  akab-network:
+    driver: bridge
+
+volumes:
+  # redis_data:

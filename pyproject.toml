@@ -1,0 +1,87 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "akab"
+version = "1.0.0"
+description = "Adaptive Knowledge Acquisition Benchmark - AI experimentation platform"
+readme = "README.md"
+authors = [
+    {name = "Ivan Saorin", email = "ivan@example.com"}
+]
+license = {text = "MIT"}
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence"
+]
+requires-python = ">=3.11"
+dependencies = [
+    "mcp-server>=1.2.0",
+    "fastapi>=0.104.0",
+    "uvicorn[standard]>=0.24.0",
+    "aiofiles>=23.2.1",
+    "pydantic>=2.5.0",
+    "python-json-logger>=2.0.7"
+]
+
+[project.optional-dependencies]
+all = [
+    "openai>=1.6.0",
+    "anthropic>=0.8.0",
+    "google-generativeai>=0.3.0",
+    "instructor>=0.4.0"
+]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.1.0",
+    "black>=23.12.0",
+    "ruff>=0.1.8"
+]
+
+[project.urls]
+Homepage = "https://github.com/ivansaorin/akab"
+Documentation = "https://github.com/ivansaorin/akab/wiki"
+Repository = "https://github.com/ivansaorin/akab"
+Issues = "https://github.com/ivansaorin/akab/issues"
+
+[project.scripts]
+akab-server = "akab.server:main"
+
+[tool.black]
+line-length = 88
+target-version = ['py311']
+include = '\.pyi?$'
+
+[tool.ruff]
+select = ["E", "F", "I", "N", "W"]
+ignore = ["E501"]
+line-length = 88
+target-version = "py311"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_functions = ["test_*"]
+python_classes = ["Test*"]
+asyncio_mode = "auto"
+
+[tool.coverage.run]
+source = ["src/akab"]
+omit = ["*/tests/*", "*/test_*.py"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:"
+]

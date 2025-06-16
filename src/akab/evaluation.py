@@ -269,6 +269,10 @@ class EvaluationEngine:
         }
         
         # Aggregate metrics by provider
+        # Track which metrics are numeric vs non-numeric
+        numeric_metrics = set()
+        non_numeric_metrics = set()
+        
         for exp in experiments:
             if "result" not in exp or "evaluation" not in exp["result"]:
                 continue
@@ -278,21 +282,77 @@ class EvaluationEngine:
             
             for metric, value in metrics.items():
                 if value is not None:
-                    analysis["provider_metrics"][provider][metric].append(value)
-                    analysis["overall_metrics"][metric].append(value)
+                    # Determine metric type and only aggregate numeric values
+                    if isinstance(value, (int, float)):
+                        numeric_metrics.add(metric)
+                        analysis["provider_metrics"][provider][metric].append(value)
+                        analysis["overall_metrics"][metric].append(value)
+                    else:
+                        non_numeric_metrics.add(metric)
+                        # For non-numeric metrics, track them separately
+                        if metric not in analysis["provider_metrics"][provider]:
+                            analysis["provider_metrics"][provider][metric] = []
+                        analysis["provider_metrics"][provider][metric].append(value)
         
         # Calculate averages
+        # BUGFIX: Build averages separately to avoid "dictionary changed size during iteration" error
+        # We can't add new keys to a dict while iterating over it
+        provider_averages = {}
         for provider, metrics in analysis["provider_metrics"].items():
-            for metric, values in metrics.items():
-                if values:
-                    avg = sum(values) / len(values)
-                    analysis["provider_metrics"][provider][f"{metric}_avg"] = round(avg, 2)
+            provider_averages[provider] = {}
+            for metric, values in list(metrics.items()):  # Convert to list to avoid iteration issues
+                if values and isinstance(values, list) and metric in numeric_metrics:
+                    # Only average numeric metrics
+                    try:
+                        avg = sum(values) / len(values)
+                        provider_averages[provider][f"{metric}_avg"] = round(avg, 2)
+                    except (TypeError, ValueError) as e:
+                        logger.warning(f"Could not average {metric} for {provider}: {e}")
+                elif metric in non_numeric_metrics and values:
+                    # For non-numeric metrics, store count instead of average
+                    provider_averages[provider][f"{metric}_count"] = len(values)
+        
+        # Now update the original dict
+        for provider, averages in provider_averages.items():
+            analysis["provider_metrics"][provider].update(averages)
         
         # Overall averages
-        for metric, values in analysis["overall_metrics"].items():
-            if values:
-                avg = sum(values) / len(values)
-                analysis["overall_metrics"][f"{metric}_avg"] = round(avg, 2)
+        # Build averages separately to avoid modifying dict during iteration
+        overall_averages = {}
+        for metric, values in list(analysis["overall_metrics"].items()):
+            if values and isinstance(values, list) and metric in numeric_metrics:
+                # Only average numeric metrics
+                try:
+                    avg = sum(values) / len(values)
+                    overall_averages[f"{metric}_avg"] = round(avg, 2)
+                except (TypeError, ValueError) as e:
+                    logger.warning(f"Could not average overall {metric}: {e}")
+        
+        # Update the original dict
+        analysis["overall_metrics"].update(overall_averages)
+        
+        # Add summary of non-numeric metrics
+        analysis["non_numeric_metrics"] = list(non_numeric_metrics)
+        analysis["numeric_metrics"] = list(numeric_metrics)
+        
+        # Special handling for key_concepts - aggregate all unique concepts
+        if "key_concepts" in non_numeric_metrics:
+            all_concepts = []
+            concept_freq = Counter()
+            
+            for provider, metrics in analysis["provider_metrics"].items():
+                if "key_concepts" in metrics:
+                    for concept_list in metrics["key_concepts"]:
+                        if isinstance(concept_list, list):
+                            all_concepts.extend(concept_list)
+                            concept_freq.update(concept_list)
+            
+            # Store top concepts by frequency
+            analysis["top_concepts"] = [
+                {"concept": concept, "frequency": count}
+                for concept, count in concept_freq.most_common(20)
+            ]
+            analysis["total_unique_concepts"] = len(concept_freq)
         
         # Generate insights
         analysis["key_findings"] = self._generate_insights(analysis)
@@ -300,14 +360,21 @@ class EvaluationEngine:
         
         # Best performing provider
         if analysis["provider_metrics"]:
-            best_provider = max(
-                analysis["provider_metrics"].items(),
-                key=lambda x: x[1].get("composite_score_avg", 0)
-            )
-            analysis["best_provider"] = {
-                "name": best_provider[0],
-                "composite_score": best_provider[1].get("composite_score_avg", 0)
-            }
+            # Find providers with composite scores
+            providers_with_scores = [
+                (provider, metrics.get("composite_score_avg", 0))
+                for provider, metrics in analysis["provider_metrics"].items()
+                if "composite_score_avg" in metrics
+            ]
+            
+            if providers_with_scores:
+                best_provider = max(providers_with_scores, key=lambda x: x[1])
+                analysis["best_provider"] = {
+                    "name": best_provider[0],
+                    "composite_score": best_provider[1]
+                }
+            else:
+                logger.warning("No providers have composite scores calculated")
         
         return analysis
     

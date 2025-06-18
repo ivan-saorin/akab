@@ -8,13 +8,19 @@ from typing import Dict, Any, Optional, List
 from datetime import datetime
 import logging
 
+# Import AKAB-specific filesystem
+from akab.filesystem import AKABFileSystemManager
+
 logger = logging.getLogger(__name__)
 
 
 class AKABTools:
     """Implementation of all AKAB MCP tools"""
     
-    def __init__(self, fs_manager, provider_manager, eval_engine):
+    def __init__(self, fs_manager: AKABFileSystemManager, provider_manager, eval_engine):
+        # Use the specialized AKAB filesystem manager
+        self.fs_manager = fs_manager
+        # For compatibility with existing code
         self.fs = fs_manager
         self.providers = provider_manager
         self.evaluator = eval_engine
@@ -1005,7 +1011,7 @@ class AKABTools:
                 }
             
             # Get metadata if available
-            metadata = await self.fs.get_template_metadata(name)
+            metadata = await self.fs.load_metadata(self.fs.templates_dir / name)
             
             return {
                 "status": "success",

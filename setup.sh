@@ -58,11 +58,16 @@ if docker compose ps | grep -q "akab-mcp-server.*running"; then
     echo "1. Configure Claude Desktop with:"
     echo '   {
      "mcpServers": {
-       "akab": {
-         "command": "docker",
-         "args": ["attach", "akab-mcp-server-1"]
-       }
-     }
+      	"akab": {
+            "command": "npx",
+            "args": [
+              "-y",
+              "supergateway",
+              "--streamableHttp",
+              "http://localhost:8001/mcp"
+            ]
+          }
+        }
    }'
     echo ""
     echo "2. In Claude Desktop, run:"

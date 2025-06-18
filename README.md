@@ -81,7 +81,7 @@ docker compose up -d
 
 ### 3. Configure Claude Desktop
 
-Add to your Claude Desktop configuration:
+Generic MCP client configuration.
 
 ```json
 {
@@ -94,6 +94,21 @@ Add to your Claude Desktop configuration:
     }
   }
 }
+```
+
+Add to your Claude Desktop configuration:
+
+```json
+	"akab": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "supergateway",
+        "--streamableHttp",
+        "http://localhost:8001/mcp"
+      ]
+    }
+  }
 ```
 
 ### 4. Run Your First Experiment

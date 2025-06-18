@@ -1,25 +1,5 @@
-# Core dependencies
-fastapi>=0.104.0
-uvicorn[standard]>=0.24.0
+# AKAB-specific dependencies
+# Core dependencies are provided by substrate base image
 
-# Async file operations
-aiofiles>=23.2.1
-
-# Data validation
-pydantic>=2.5.0
-
-# Logging
-python-json-logger>=2.0.7
-
-# Optional: Remote provider SDKs
-openai>=1.6.0
-anthropic>=0.8.0
-google-generativeai>=0.3.0
-instructor>=0.4.0
-
-# Development dependencies (optional)
-pytest>=7.4.0
-pytest-asyncio>=0.21.0
-pytest-cov>=4.1.0
-black>=23.12.0
-ruff>=0.1.8
+# Additional utilities that might be needed by AKAB specifically
+# (Most dependencies are already in substrate)

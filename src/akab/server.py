@@ -11,16 +11,19 @@ from pathlib import Path
 from datetime import datetime
 from typing import Dict, Any, Optional, List
 
-from mcp.server.fastmcp import FastMCP
+# Import from substrate instead of local modules
+from mcp.server import FastMCP
+from providers import ProviderManager, ProviderType
+from evaluation import EvaluationEngine
+from filesystem import FileSystemManager
+
 from pydantic import BaseModel
 
 # Add parent directory to path for imports
 sys.path.append(str(Path(__file__).parent.parent))
 
-from akab.filesystem import FileSystemManager
-from akab.providers import ProviderManager, ProviderType
+# Import AKAB-specific modules
 from akab.tools.akab_tools import AKABTools
-from akab.evaluation import EvaluationEngine
 
 # Configure logging
 logging.basicConfig(
@@ -36,7 +39,7 @@ SERVER_NAME = os.getenv("MCP_SERVER_NAME", "AKAB AI Server")
 # Initialize FastMCP server
 mcp = FastMCP(SERVER_NAME)
 
-# Global instances
+# Global instances - now using substrate components
 fs_manager = FileSystemManager(DATA_PATH)
 provider_manager = ProviderManager()
 eval_engine = EvaluationEngine()
@@ -142,8 +145,8 @@ async def akab_batch_execute_remote(
             "active_campaign": active_remote_campaign
         }
     
-    # Validate campaign exists
-    campaign = await fs_manager.load_campaign(campaign_id)
+    # Validate campaign exists - need to use AKAB's filesystem methods
+    campaign = await akab_tools.fs_manager.load_campaign(campaign_id)
     if not campaign:
         return {
             "status": "error",

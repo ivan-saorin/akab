@@ -1,45 +1,28 @@
+version: '3.8'
+
 services:
-  akab-mcp-server:
-    build: .
-    container_name: akab-mcp-server
-    environment:
-      - MCP_SERVER_NAME=AKAB-Dev
-      - DATA_PATH=/data/akab
-      - LOG_LEVEL=${LOG_LEVEL:-INFO}
-      - PORT=8000  # Fixed: Always use 8000 inside container
-      # API Keys for remote providers
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
-    volumes:
-      - ./data/akab:/data/akab
-      - ./src:/app/src:ro  # Read-only source mount for development
+  akab:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: akab:latest
+    container_name: akab-server
     ports:
-      - "8001:8000"  # Fixed: Map external 8001 to internal 8000
-    restart: unless-stopped
+      - "8000:8000"
+    volumes:
+      - ./data:/data/akab
+    environment:
+      - DATA_PATH=/data/akab
+      - MCP_SERVER_NAME=AKAB AI Server
+      - PORT=8000
+      # Optional API keys for remote providers
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
-      timeout: 10s
+      timeout: 3s
       retries: 3
       start_period: 40s
-    networks:
-      - akab-network
-
-  # Optional: Redis for future state management
-  # redis:
-  #   image: redis:7-alpine
-  #   container_name: akab-redis
-  #   volumes:
-  #     - redis_data:/data
-  #   networks:
-  #     - akab-network
-
-networks:
-  akab-network:
-    driver: bridge
-
-# Remove the empty volumes section that was causing the error
-# Uncomment below when redis is enabled
-# volumes:
-#   redis_data:
+    restart: unless-stopped

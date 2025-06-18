@@ -66,12 +66,15 @@ if %errorlevel% equ 0 (
     echo.
     echo 📋 Next steps:
     echo 1. Configure Claude Desktop with:
-    echo    {
-    echo      "mcpServers": {
-    echo        "akab": {
-    echo          "command": "docker",
-    echo          "args": ["attach", "akab-mcp-server-1"]
-    echo        }
+    echo    "mcpServers": {
+    echo      "akab": {
+    echo        "command": "npx",
+    echo        "args": [
+    echo          "-y",
+    echo          "supergateway",
+    echo          "--streamableHttp",
+    echo          "http://localhost:8001/mcp"
+    echo        ]
     echo      }
     echo    }
     echo.

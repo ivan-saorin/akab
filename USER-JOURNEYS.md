@@ -808,9 +808,14 @@ She configures Claude Desktop to connect to AKAB:
 ```json
 {
   "mcpServers": {
-    "akab": {
-      "command": "docker",
-      "args": ["attach", "akab-mcp-server-1"]
+   "akab": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "supergateway",
+        "--streamableHttp",
+        "http://localhost:8001/mcp"
+      ]
     }
   }
 }
@@ -963,6 +968,7 @@ docker cp akab-mcp-server-1:/data/akab/results/implicit-bias-study-2025 ./resear
 ### Outcome
 
 Dr. Chen successfully:
+
 - Collected 150 systematic responses across 5 models
 - Spent only $3.48 on API costs
 - Generated reproducible, peer-reviewable data
@@ -1185,6 +1191,7 @@ Hybrid Recommendation:
 ### Outcome
 
 Alex successfully:
+
 - Tested 6 models with 600 real queries for < $5
 - Identified 80% cost savings opportunity
 - Gathered production-ready performance metrics
@@ -1464,6 +1471,7 @@ Expected Impact:
 ### Outcome
 
 Maya successfully:
+
 - Created 3 viral videos with scientific backing
 - Spent less than $2 on comprehensive testing
 - Generated 180+ creative outputs for content
@@ -1476,22 +1484,26 @@ Maya successfully:
 ## Key Takeaways Across All Journeys
 
 ### 1. Efficiency Gains
+
 - **Academic**: 2 weeks → 3 days
 - **Business**: Months of trial → 3 days of testing
 - **Content**: Random testing → Systematic comparison
 
 ### 2. Cost Effectiveness
+
 - **Academic**: $3.48 for 150 experiments
 - **Business**: < $5 to save $328K/year
 - **Content**: < $2 for viral video series
 
 ### 3. AKAB's Value Proposition
+
 - **Systematic**: Reproducible, scientific approach
 - **Economical**: Transparent costs, bulk efficiency
 - **Flexible**: Adapts to any use case
 - **Insightful**: Patterns emerge from scale
 
 ### 4. Common Success Patterns
+
 1. Start with local testing to refine approach
 2. Use batch execution for scale
 3. Analyze patterns, not just individual results
@@ -1510,7 +1522,8 @@ Ready to start your own AKAB journey? Here's how:
 6. **Take Action**: Apply learnings to your work
 
 Join the AKAB community and share your journey:
-- Discord: https://discord.gg/akab
+
+- Discord: <https://discord.gg/akab>
 - Share results: #AKABResults
 - Get help: #AKABSupport
 

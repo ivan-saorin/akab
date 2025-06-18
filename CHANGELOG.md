@@ -2,6 +2,13 @@
 
 ## [2.0.0] - 2025-01-18
 
+### Architecture Documentation
+- Updated ASR (Architecture Significant Records) to v2.0
+- Added ASR-013: Substrate Foundation Architecture
+- Added ASR-014: Evaluation Engine Architecture
+- Added ASR-015: FileSystem Architecture Evolution
+- Updated existing ASRs to reflect Substrate integration
+
 ### Changed - MAJOR ARCHITECTURE REFACTOR
 - **BREAKING**: Refactored to use Substrate as foundation layer
 - **BREAKING**: Import paths changed:

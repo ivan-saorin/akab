@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.11"
 license = {file = "LICENSE"}
 authors = [
-    {name = "Ivan", email = "ivan@example.com"},
+    {name = "Ivan", email = "ivan.saorin(at)gmail.com"},
 ]
 keywords = ["mcp", "llm", "ab-testing", "ai", "comparison"]
 classifiers = [
@@ -52,10 +52,10 @@ providers = [
 akab-server = "akab.server:main"
 
 [project.urls]
-Homepage = "https://github.com/ivan/akab-mcp"
-Documentation = "https://github.com/ivan/akab-mcp/wiki"
-Repository = "https://github.com/ivan/akab-mcp"
-Issues = "https://github.com/ivan/akab-mcp/issues"
+Homepage = "https://github.com/ivan-saorin/akab-mcp"
+Documentation = "https://github.com/ivan-saorin/akab-mcp/wiki"
+Repository = "https://github.com/ivan-saorin/akab-mcp"
+Issues = "https://github.com/ivan-saorin/akab-mcp/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]

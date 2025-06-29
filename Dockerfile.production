@@ -22,7 +22,7 @@ RUN pip install --no-cache-dir build wheel
 
 # For now, install substrate from git (in production, would be from PyPI)
 RUN pip wheel --no-cache-dir --wheel-dir /wheels \
-    'substrate-mcp @ git+https://github.com/ivan/substrate-mcp.git' || \
+    'substrate-mcp @ git+https://github.com/ivan-saorin/substrate-mcp.git' || \
     pip wheel --no-cache-dir --wheel-dir /wheels fastmcp pydantic httpx
 
 # Build AKAB wheel

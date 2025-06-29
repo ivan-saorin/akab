@@ -1,4 +1,4 @@
-# AKAB - Scientific A/B Testing for AI
+# AKAB - Adaptive Knowledge Acquisition Benchmark
 
 <p align="center">
   <strong>🧪 Open-source A/B testing tool for comparing AI outputs across providers</strong>
@@ -22,7 +22,7 @@
 
 ## What is AKAB?
 
-AKAB (A/B testing Kinda Advanced, Bro) is a scientific tool for comparing AI model outputs across multiple providers. It helps you make data-driven decisions about which AI models to use based on performance, cost, and quality metrics.
+AKAB (Adaptive Knowledge Acquisition Benchmark) is a scientific tool for comparing AI model outputs across multiple providers. It helps you make data-driven decisions about which AI models to use based on performance, cost, and quality metrics.
 
 ### Why AKAB?
 
@@ -30,7 +30,7 @@ AKAB (A/B testing Kinda Advanced, Bro) is a scientific tool for comparing AI mod
 - **💰 Cost Optimization**: Track and compare costs to optimize your AI spending
 - **📊 Comprehensive Metrics**: Analyze speed, quality, token usage, and more
 - **🎯 Provider Agnostic**: Works with Anthropic, OpenAI, Google, and more
-- **🚀 Production Ready**: Built on [Substrate MCP Foundation](https://github.com/yourusername/substrate)
+- **🚀 Production Ready**: Built on [Substrate MCP Foundation](https://github.com/ivan-saorin/substrate)
 
 ## Features
 
@@ -49,7 +49,7 @@ AKAB (A/B testing Kinda Advanced, Bro) is a scientific tool for comparing AI mod
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/akab.git
+git clone https://github.com/ivan-saorin/akab.git
 cd akab
 
 # Build Docker image
@@ -106,8 +106,8 @@ docker-compose up akab
 
 ```bash
 # Clone both repositories
-git clone https://github.com/yourusername/substrate.git
-git clone https://github.com/yourusername/akab.git
+git clone https://github.com/ivan-saorin/substrate.git
+git clone https://github.com/ivan-saorin/akab.git
 
 # Install substrate first
 cd substrate
@@ -316,7 +316,7 @@ Get detailed cost analysis.
 
 ## Architecture
 
-Built on [Substrate MCP Foundation](https://github.com/yourusername/substrate):
+Built on [Substrate MCP Foundation](https://github.com/ivan-saorin/substrate):
 
 ```
 AKAB Server
@@ -344,7 +344,7 @@ AKAB Server
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/akab.git
+git clone https://github.com/ivan-saorin/akab.git
 cd akab
 
 # Create virtual environment
@@ -433,16 +433,16 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Acknowledgments
 
-- Built on [Substrate MCP Foundation](https://github.com/yourusername/substrate)
+- Built on [Substrate MCP Foundation](https://github.com/ivan-saorin/substrate)
 - Designed for the [Model Context Protocol](https://modelcontextprotocol.io)
 - Inspired by the need for scientific AI comparison
 
 ## Links
 
-- [Substrate Foundation](https://github.com/yourusername/substrate)
+- [Substrate Foundation](https://github.com/ivan-saorin/substrate)
 - [MCP Documentation](https://modelcontextprotocol.io)
-- [Issue Tracker](https://github.com/yourusername/akab/issues)
-- [Discussions](https://github.com/yourusername/akab/discussions)
+- [Issue Tracker](https://github.com/ivan-saorin/akab/issues)
+- [Discussions](https://github.com/ivan-saorin/akab/discussions)
 
 ---
 

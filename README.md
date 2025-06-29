@@ -22,7 +22,7 @@
 
 ## What is AKAB?
 
-AKAB (A/B testing Kinda Advanced, Bro) is a scientific tool for comparing AI model outputs across multiple providers. It helps you make data-driven decisions about which AI models to use based on performance, cost, and quality metrics.
+AKAB (Adaptive Knowledge Acquisition Benchmark) is a scientific tool for comparing AI model outputs across multiple providers. It helps you make data-driven decisions about which AI models to use based on performance, cost, and quality metrics.
 
 ### Why AKAB?
 

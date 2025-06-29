@@ -4,6 +4,13 @@ __pycache__/
 *$py.class
 *.so
 .Python
+venv/
+env/
+ENV/
+.venv
+
+# Distribution / packaging
+.Python
 build/
 develop-eggs/
 dist/
@@ -21,58 +28,30 @@ wheels/
 *.egg
 MANIFEST
 
-# Virtual Environment
-venv/
-ENV/
-env/
-.venv
+# Testing
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
 
-# IDE
-.vscode/
+# IDEs
 .idea/
+.vscode/
 *.swp
 *.swo
 *~
-
-# Environment variables
-.env
-.env.local
-.env.*.local
-
-# Data files (but keep structure)
-data/akab/campaigns/*.json
-data/akab/experiments/*/
-data/akab/results/*/
-data/akab/artifacts/
-
-# Keep these data files
-!data/akab/meta_prompt.md
-!data/akab/knowledge_bases/*.md
-!data/akab/templates/*.md
-
-# Logs
-*.log
-logs/
-
-# Testing
-.coverage
-.pytest_cache/
-htmlcov/
-.tox/
-.hypothesis/
 
 # OS
 .DS_Store
 Thumbs.db
 
-# Docker
-docker-compose.override.yml
-
-# Backups
-*.bak
-*.backup
-*.old
-
-# Temporary files
-*.tmp
-*.temp
+# Project specific
+*.log
+.env
+akab_data/

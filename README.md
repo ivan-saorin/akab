@@ -1,420 +1,449 @@
-# AKAB - Adaptive Knowledge Acquisition Benchmark
+# AKAB - Scientific A/B Testing for AI
 
 <p align="center">
-  <img src="docs/images/akab-logo.png" alt="AKAB Logo" width="400"/>
-</p>
-
-<p align="center">
-  <strong>The Definitive Platform for Systematic AI Research and AB Testing</strong>
+  <strong>🧪 Open-source A/B testing tool for comparing AI outputs across providers</strong>
 </p>
 
 <p align="center">
   <a href="#features">Features</a> •
   <a href="#quick-start">Quick Start</a> •
-  <a href="#architecture">Architecture</a> •
+  <a href="#installation">Installation</a> •
+  <a href="#usage">Usage</a> •
   <a href="#providers">Providers</a> •
-  <a href="#documentation">Documentation</a> •
+  <a href="#api">API</a> •
   <a href="#contributing">Contributing</a>
 </p>
 
-## 🚀 Overview
+<p align="center">
+  <img src="https://img.shields.io/badge/MCP-Compatible-blue" alt="MCP Compatible">
+  <img src="https://img.shields.io/badge/Docker-Ready-brightgreen" alt="Docker Ready">
+  <img src="https://img.shields.io/badge/License-MIT-yellow" alt="License MIT">
+</p>
 
-AKAB (Adaptive Knowledge Acquisition Benchmark) is a revolutionary MCP (Model Context Protocol) server that enables systematic, scientific AB testing across multiple AI models and providers. Built for researchers, developers, and AI enthusiasts who need rigorous experimentation capabilities with complete control over their data.
+## What is AKAB?
+
+AKAB (A/B testing Kinda Advanced, Bro) is a scientific tool for comparing AI model outputs across multiple providers. It helps you make data-driven decisions about which AI models to use based on performance, cost, and quality metrics.
 
 ### Why AKAB?
 
-- **🔬 Scientific Rigor**: Structured experiments with reproducible results
-- **💰 Cost Transparency**: Know exactly what you're spending before you start
-- **🌐 Multi-Provider**: Compare Claude, GPT-4, Gemini, and more in one platform
-- **📊 Rich Analytics**: Deep insights from systematic experimentation
-- **🔒 Your Data**: Filesystem-based storage you control completely
-- **🚄 Blazing Fast**: Local or remote execution with minimal overhead
+- **🔬 Scientific Comparison**: Compare outputs across providers with consistent methodology
+- **💰 Cost Optimization**: Track and compare costs to optimize your AI spending
+- **📊 Comprehensive Metrics**: Analyze speed, quality, token usage, and more
+- **🎯 Provider Agnostic**: Works with Anthropic, OpenAI, Google, and more
+- **🚀 Production Ready**: Built on [Substrate MCP Foundation](https://github.com/yourusername/substrate)
 
-## ✨ Features
+## Features
 
-### Core Capabilities
+- **Quick Compare**: One-shot comparisons across multiple providers
+- **Campaign Management**: Create comprehensive test campaigns with multiple prompts
+- **Cost Tracking**: Monitor spending with detailed breakdowns
+- **Provider Abstraction**: Size-based naming (anthropic_m, openai_l, etc.)
+- **Smart Constraints**: Get constraint suggestions via sampling
+- **Scientific Analysis**: Statistical comparison with winner selection
+- **Progress Tracking**: Long operations with timeout prevention
+- **Template Support**: Use `{{variables}}` in prompts
 
-- **Multi-Model AB Testing**: Compare responses across providers scientifically
-- **Campaign Management**: Organize experiments into logical campaigns
-- **Meta-Prompt System**: Self-configuring workflows for automated experimentation
-- **Dual-Mode Execution**: Run locally via MCP or remotely via APIs
-- **Cost Tracking**: Real-time cost estimation and tracking
-- **Knowledge Base Integration**: Inject context to guide AI behavior
-- **Structured Outputs**: Consistent results via Instructor library
-- **Docker-Native**: Easy deployment anywhere
+## Quick Start
 
-### Supported Providers
-
-| Provider | Models | Status | Cost/1K tokens |
-|----------|--------|--------|----------------|
-| Anthropic (Local) | Claude via MCP | ✅ Ready | Free* |
-| OpenAI | GPT-3.5/4 | ✅ Ready | $0.002-$0.03 |
-| Anthropic API | Claude 3 Opus/Sonnet | ✅ Ready | $0.003-$0.025 |
-| Google | Gemini Pro | 🚧 Coming | $0.001 |
-| Mistral | Open models | 🚧 Coming | $0.0002 |
-
-*Via Claude Desktop or compatible MCP client
-
-## 🏃 Quick Start
-
-### Prerequisites
-
-- Docker & Docker Compose
-- Python 3.11+ (for development)
-- Claude Desktop (for local MCP execution)
-- API keys for remote providers
-
-### 1. Clone and Setup
+### 1. Install with Docker (Recommended)
 
 ```bash
+# Clone the repository
 git clone https://github.com/yourusername/akab.git
 cd akab
-cp .env.example .env
-# Edit .env with your API keys
+
+# Build Docker image
+docker build -t akab-mcp:latest .
+
+# Run with your API keys
+docker run --rm -i \
+  -e ANTHROPIC_API_KEY=your_key \
+  -e OPENAI_API_KEY=your_key \
+  -e GOOGLE_API_KEY=your_key \
+  akab-mcp:latest
 ```
 
-### 2. Start AKAB Server
+### 2. Configure Claude Desktop
 
-```bash
-docker compose up -d
-```
-
-### 3. Configure Claude Desktop
-
-Generic MCP client configuration.
+Add to your Claude Desktop configuration:
 
 ```json
 {
   "mcpServers": {
     "akab": {
       "command": "docker",
-      "args": ["run", "--rm", "-i", "--name", "akab-mcp", 
-               "-v", "${HOME}/akab-data:/data/akab", 
-               "-p", "8000:8000", "akab:latest"]
-    }
-  }
-}
-```
-
-Add to your Claude Desktop configuration:
-
-```json
-	"akab": {
-      "command": "npx",
       "args": [
-        "-y",
-        "supergateway",
-        "--streamableHttp",
-        "http://localhost:8001/mcp"
+        "run", "--rm", "-i",
+        "-e", "ANTHROPIC_API_KEY=your_key",
+        "-e", "OPENAI_API_KEY=your_key",
+        "-e", "GOOGLE_API_KEY=your_key",
+        "akab-mcp:latest"
       ]
     }
   }
-```
-
-### 4. Run Your First Experiment
-
-In Claude Desktop:
-
-```
-Use the akab_get_meta_prompt tool to load instructions, then run experiments!
-```
-
-## 🏗️ Architecture
-
-AKAB follows a clean, modular architecture designed for extensibility and reliability:
-
-```
-┌─────────────────┐     ┌──────────────────┐
-│  Claude Desktop │     │   API Providers  │
-│   (MCP Client)  │     │ (OpenAI, etc.)   │
-└────────┬────────┘     └────────┬─────────┘
-         │                       │
-         └───────┐   ┌───────────┘
-                 │   │
-         ┌───────▼───▼────────┐
-         │   AKAB MCP Server  │
-         │  ┌──────────────┐  │
-         │  │ FastMCP Core │  │
-         │  └──────┬───────┘  │
-         │         │          │
-         │  ┌──────▼───────┐  │     ┌─────────────────┐
-         │  │Tool Registry │  ├─────►│Provider Manager │
-         │  └──────┬───────┘  │     └─────────────────┘
-         │         │          │
-         │  ┌──────▼───────┐  │     ┌─────────────────┐
-         │  │  Filesystem  │  ├─────►│ Cost Tracker    │
-         │  │   Storage    │  │     └─────────────────┘
-         │  └──────────────┘  │
-         └────────────────────┘
-                 │
-         ┌───────▼────────┐
-         │  Docker Volume │
-         │  /data/akab/   │
-         └────────────────┘
-```
-
-### Key Components
-
-- **FastMCP Core**: Official Anthropic MCP implementation
-- **Tool Registry**: Workflow-oriented tools for experimentation
-- **Provider Manager**: Abstraction layer for multi-model support
-- **Filesystem Storage**: Transparent, version-controllable data
-- **Cost Tracker**: Real-time cost monitoring and warnings
-
-## 📁 Data Organization
-
-AKAB uses a campaign-based folder structure for clarity:
-
-```
-/data/akab/
-├── campaigns/              # Campaign definitions
-├── experiments/            # Organized by campaign
-│   ├── my-campaign/
-│   │   ├── exp_001/       # Individual experiments
-│   │   │   ├── config.json
-│   │   │   ├── prompt.md
-│   │   │   └── result.json
-│   │   └── exp_002/
-│   └── another-campaign/
-├── knowledge_bases/        # Reusable context
-├── templates/             # Prompt templates
-└── results/               # Analysis outputs
-```
-
-## 🛠️ Available Tools
-
-AKAB provides a comprehensive toolkit via MCP:
-
-### Meta Configuration
-
-- `akab_get_meta_prompt()` - Load self-configuring instructions
-
-### Experiment Management
-
-- `akab_get_next_experiment()` - Queue management
-- `akab_get_exp_prompt(exp_id)` - Retrieve prompts
-- `akab_save_exp_result(exp_id, result, metadata)` - Store results
-
-### Campaign Operations
-
-- `akab_create_campaign(config)` - Initialize campaigns
-- `akab_list_campaigns()` - View all campaigns
-- `akab_switch_campaign(campaign_id)` - Change active campaign
-- `akab_get_campaign_status()` - Check progress
-- `akab_analyze_results(campaign_id)` - Generate insights
-
-### Remote Execution
-
-- `akab_batch_execute_remote(campaign_id)` - Launch batch runs
-- `akab_get_execution_status()` - Monitor progress
-
-## 💰 Cost Management
-
-AKAB includes sophisticated cost tracking:
-
-- **Pre-execution estimates** with warnings for 20+ experiments
-- **Real-time tracking** during batch execution
-- **Provider comparison** metrics
-- **Cost/quality analysis** in results
-
-Example cost warning:
-
-```
-⚠️ About to execute 50 experiments across 3 providers
-Estimated cost: $12.50
-- OpenAI GPT-4: $8.00
-- Claude 3 Opus: $3.50
-- Gemini Pro: $1.00
-```
-
-## 📚 Documentation
-
-- [USER-JOURNEYS.md](./USER-JOURNEYS.md) - Detailed usage scenarios
-- [Architecture Guide](./docs/ARCHITECTURE.md) - Technical deep dive
-- [Provider Integration](./docs/PROVIDERS.md) - Adding new providers
-- [API Reference](./docs/API.md) - Complete tool documentation
-- [Cost Optimization](./docs/COST-OPTIMIZATION.md) - Save money on experiments
-
-## 🔬 Example Use Cases
-
-### 1. Compare Model Creativity
-
-Test how different models approach creative writing tasks:
-
-```python
-{
-    "name": "creativity-benchmark",
-    "providers": ["openai/gpt-4", "anthropic/claude-3-opus", "google/gemini-pro"],
-    "experiments": 30,
-    "prompt_template": "creative_writing",
-    "analysis_focus": ["novelty", "coherence", "engagement"]
 }
 ```
 
-### 2. Technical Accuracy Testing
+### 3. Start Testing!
 
-Evaluate code generation capabilities:
-
-```python
-{
-    "name": "code-generation-test",
-    "providers": ["openai/gpt-4", "anthropic/claude-3-sonnet"],
-    "experiments": 50,
-    "prompt_template": "python_algorithms",
-    "validation": "automated_testing"
-}
+```
+Use akab to compare "Explain quantum computing in simple terms" across anthropic_m and openai_m
 ```
 
-### 3. Cost/Performance Optimization
+## Installation
 
-Find the best model for your budget:
-
-```python
-{
-    "name": "budget-optimization",
-    "providers": ["openai/gpt-3.5-turbo", "anthropic/claude-instant", "mistral/mixtral"],
-    "experiments": 100,
-    "constraint": "max_cost=$10",
-    "optimize_for": "quality_per_dollar"
-}
-```
-
-## 🚀 Advanced Features
-
-### Parallel Execution
-
-Run experiments across providers simultaneously:
-
-```python
-config["execution_mode"] = "parallel"
-config["max_concurrent"] = 5
-```
-
-### Custom Evaluation Metrics
-
-Define your own scoring functions:
-
-```python
-config["evaluators"] = ["innovation_score", "practical_value", "custom_metric"]
-```
-
-### Knowledge Base Injection
-
-Guide model behavior with context:
-
-```python
-config["knowledge_bases"] = ["domain_expertise.md", "style_guide.md"]
-```
-
-## 🔧 Development
-
-### Local Development Setup
+### Option 1: Docker (Recommended)
 
 ```bash
+# Build the image
+docker build -t akab-mcp:latest .
+
+# Or use docker-compose
+docker-compose up akab
+```
+
+### Option 2: Local Installation
+
+```bash
+# Clone both repositories
+git clone https://github.com/yourusername/substrate.git
+git clone https://github.com/yourusername/akab.git
+
+# Install substrate first
+cd substrate
+pip install -e .
+
+# Install AKAB
+cd ../akab
+pip install -e .
+
+# Set environment variables
+export ANTHROPIC_API_KEY=your_key
+export OPENAI_API_KEY=your_key
+export GOOGLE_API_KEY=your_key
+
+# Run the server
+python -m akab
+```
+
+## Usage
+
+### Quick Compare
+
+Compare a single prompt across providers:
+
+```python
+# Simple comparison
+"Use akab to compare 'Write a haiku about AI' across anthropic_s and openai_s"
+
+# With constraints
+"Use akab to compare with max_tokens=50 and temperature=0"
+
+# With template parameters
+"Compare 'Write a {{style}} about {{topic}}' with style='sonnet' and topic='machine learning'"
+```
+
+### Campaign Management
+
+Run comprehensive tests with multiple prompts:
+
+```python
+# Create a campaign
+"Create an AKAB campaign called 'content_quality' to test my writing prompts"
+
+# Execute campaign
+"Execute the content_quality campaign"
+
+# Analyze results
+"Analyze results from the content_quality campaign"
+```
+
+### Cost Tracking
+
+Monitor your AI spending:
+
+```python
+# Get cost report
+"Show me AKAB cost report for this week grouped by provider"
+
+# Campaign cost estimate
+"Estimate cost for campaign_xyz before running it"
+```
+
+## Providers
+
+AKAB uses size-based provider naming for future-proof configuration:
+
+| Size | Anthropic | OpenAI | Google |
+|------|-----------|---------|---------|
+| XS | `anthropic_xs` (Haiku) | - | - |
+| S | `anthropic_s` (Haiku) | `openai_s` (GPT-3.5) | `google_s` (Gemini Flash) |
+| M | `anthropic_m` (Sonnet) | `openai_m` (GPT-4) | `google_m` (Gemini Pro) |
+| L | `anthropic_l` (Sonnet) | `openai_l` (GPT-4 Turbo) | - |
+| XL | `anthropic_xl` (Opus) | - | - |
+
+Set API keys as environment variables:
+- `ANTHROPIC_API_KEY`
+- `OPENAI_API_KEY`
+- `GOOGLE_API_KEY`
+
+## API Reference
+
+### Tools
+
+#### `akab`
+Get server information and capabilities.
+
+#### `akab_quick_compare`
+Compare a prompt across providers.
+
+**Parameters:**
+- `prompt` (str): The prompt to test
+- `providers` (list): List of providers (e.g., ["anthropic_m", "openai_m"])
+- `parameters` (dict, optional): Template parameters
+- `constraints` (dict, optional): Constraints like max_tokens, temperature
+
+**Example Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "results": [...],
+    "winner": "anthropic_m",
+    "metrics": {
+      "fastest_provider": "openai_s",
+      "cheapest_provider": "anthropic_s",
+      "average_latency_ms": 1523.45
+    }
+  }
+}
+```
+
+#### `akab_create_campaign`
+Create a new testing campaign.
+
+**Parameters:**
+- `name` (str): Campaign name
+- `prompts` (list): List of prompt configurations
+- `providers` (list): Providers to test
+- `iterations` (int): Number of test iterations
+- `constraints` (dict, optional): Global constraints
+
+#### `akab_execute_campaign`
+Execute a campaign with optional dry run.
+
+**Parameters:**
+- `campaign_id` (str): Campaign ID
+- `dry_run` (bool): If true, only estimate cost
+
+#### `akab_analyze_results`
+Analyze campaign results with insights.
+
+**Parameters:**
+- `campaign_id` (str): Campaign ID
+- `metrics` (list, optional): Specific metrics to analyze
+
+#### `akab_list_campaigns`
+List all campaigns with filtering.
+
+**Parameters:**
+- `status` (str, optional): Filter by status
+- `limit` (int): Results per page
+- `offset` (int): Pagination offset
+
+#### `akab_cost_report`
+Get detailed cost analysis.
+
+**Parameters:**
+- `time_period` (str): "day", "week", "month", "all"
+- `group_by` (str): "provider", "campaign", "prompt"
+
+## Example Results
+
+### Quick Compare Output
+```json
+{
+  "results": [
+    {
+      "provider": "anthropic_m",
+      "response": "Quantum bits dance,\nSuperposition's strange waltz,\nReality blurs.",
+      "latency_ms": 1245.67,
+      "tokens_used": 42,
+      "cost_estimate": 0.00021
+    },
+    {
+      "provider": "openai_m",
+      "response": "Qubits spinning round\nBoth here and there at once, strange\nQuantum mysteries",
+      "latency_ms": 987.23,
+      "tokens_used": 38,
+      "cost_estimate": 0.00019
+    }
+  ],
+  "winner": "openai_m",
+  "metrics": {
+    "fastest_provider": "openai_m",
+    "cheapest_provider": "openai_m",
+    "average_latency_ms": 1116.45
+  }
+}
+```
+
+### Campaign Analysis
+```json
+{
+  "campaign_id": "campaign_abc123",
+  "total_completions": 24,
+  "total_cost": 0.0453,
+  "provider_performance": {
+    "anthropic_m": {
+      "avg_latency": 1523.45,
+      "avg_cost": 0.00234,
+      "success_rate": 1.0
+    },
+    "openai_m": {
+      "avg_latency": 1102.33,
+      "avg_cost": 0.00187,
+      "success_rate": 0.98
+    }
+  },
+  "insights": [
+    "openai_m was 38% faster than anthropic_m",
+    "anthropic_m responses were 25% longer on average",
+    "Cost difference: openai_m saves $0.47 per 1000 requests"
+  ]
+}
+```
+
+## Architecture
+
+Built on [Substrate MCP Foundation](https://github.com/yourusername/substrate):
+
+```
+AKAB Server
+├── Substrate Base (SubstrateMCP)
+│   ├── Standard Tools
+│   ├── Progress Tracking
+│   └── Error Handling
+├── Provider Manager
+│   ├── Provider Configuration
+│   └── Size-based Mapping
+├── Comparison Engine
+│   ├── Parallel Execution
+│   └── Result Analysis
+├── Campaign Manager
+│   ├── Campaign Storage
+│   └── Batch Processing
+└── Cost Tracker
+    ├── Usage Monitoring
+    └── Spend Analysis
+```
+
+## Development
+
+### Setup
+
+```bash
+# Clone repository
+git clone https://github.com/yourusername/akab.git
+cd akab
+
 # Create virtual environment
 python -m venv venv
-source venv/bin/activate  # or `venv\Scripts\activate` on Windows
+source venv/bin/activate  # Linux/Mac
+venv\Scripts\activate     # Windows
 
 # Install dependencies
-pip install -r requirements.txt
+pip install -e ".[dev]"
+```
 
+### Testing
+
+```bash
 # Run tests
 pytest
 
-# Start development server
-python -m akab.server
+# Run with coverage
+pytest --cov=akab
+
+# Run in Docker
+docker-compose run --rm akab pytest
 ```
 
-### Running Tests
+### Code Quality
 
 ```bash
-# Unit tests
-pytest tests/unit/
+# Format code
+black src/
+isort src/
 
-# Integration tests
-pytest tests/integration/
+# Lint
+ruff check src/
 
-# Full test suite with coverage
-pytest --cov=akab --cov-report=html
+# Type checking
+mypy src/
 ```
 
-## 🚢 Production Deployment
+## Docker
 
-### Using CapRover
-
-1. Install CapRover on your server
-2. Create new app named `akab`
-3. Deploy using Captain CLI:
+### Building
 
 ```bash
-captain deploy
+# Production image
+docker build -t akab-mcp:latest .
+
+# Development image with live reload
+docker build -f Dockerfile.dev -t akab-mcp:dev .
 ```
 
-### Manual Docker Deployment
+### Docker Compose
 
-```bash
-docker build -t akab:latest .
-docker run -d \
-  --name akab-prod \
-  -v /path/to/data:/data/akab \
-  -p 8000:8000 \
-  --env-file .env.prod \
-  akab:latest
+```yaml
+services:
+  akab:
+    image: akab-mcp:latest
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+    volumes:
+      - akab_data:/app/akab_data
 ```
 
-## 🤝 Contributing
+## Contributing
 
-We welcome contributions! See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
-
-### Development Workflow
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
 
 1. Fork the repository
-2. Create feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open Pull Request
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-## 📈 Performance Benchmarks
+### Ideas for Contribution
 
-| Operation | Time | Notes |
-|-----------|------|-------|
-| Tool call overhead | <50ms | FastMCP optimized |
-| Experiment execution (local) | <100ms | Via MCP client |
-| Experiment execution (remote) | 1-5s | Depends on provider |
-| Campaign analysis (100 exp) | <2s | Filesystem-based |
-| Batch execution (50 exp) | 2-5min | With rate limiting |
+- Additional provider support (Cohere, AI21, etc.)
+- Advanced analysis metrics
+- Web UI for results visualization
+- Export formats (CSV, JSON, charts)
+- Automated testing workflows
 
-## 🔒 Security
+## License
 
-- API keys stored in environment variables only
-- No credentials in filesystem storage
-- Docker container isolation
-- Optional API key rotation
-- Rate limiting for all providers
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 📝 License
+## Acknowledgments
 
-This project is licensed under the MIT License - see [LICENSE](./LICENSE) file for details.
+- Built on [Substrate MCP Foundation](https://github.com/yourusername/substrate)
+- Designed for the [Model Context Protocol](https://modelcontextprotocol.io)
+- Inspired by the need for scientific AI comparison
 
-## 🙏 Acknowledgments
+## Links
 
-- Anthropic for the MCP protocol and Claude
-- OpenAI, Google, and other providers for their APIs
-- The Instructor library team for structured outputs
-- Ivan Saorin for the vision and architecture
-
-## 🌟 Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=yourusername/akab&type=Date)](https://star-history.com/#yourusername/akab&Date)
+- [Substrate Foundation](https://github.com/yourusername/substrate)
+- [MCP Documentation](https://modelcontextprotocol.io)
+- [Issue Tracker](https://github.com/yourusername/akab/issues)
+- [Discussions](https://github.com/yourusername/akab/discussions)
 
 ---
 
-<p align="center">
-  Built with ❤️ for the AI research community
-</p>
-
-<p align="center">
-  <a href="https://github.com/yourusername/akab/issues">Report Bug</a> •
-  <a href="https://github.com/yourusername/akab/issues">Request Feature</a> •
-  <a href="https://discord.gg/akab">Join Discord</a>
-</p>
+<p align="center">Made with ❤️ for the AI community</p>

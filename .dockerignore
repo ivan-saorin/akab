@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+*.egg-info/
+.pytest_cache/
+
+# Git
+.git/
+.gitignore
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Project specific
+akab_data/
+*.log
+.env
+.coverage
+htmlcov/
+
+# Documentation
+*.md
+!README.md
+!LICENSE
+
+# Tests (exclude from production image)
+tests/
+examples/
+conftest.py
+pytest.ini
+.coveragerc
+
+# Development files
+*.bat
+*.sh
+docker-compose.yml
+Dockerfile.dev

@@ -1,5 +1,0 @@
-# AKAB-specific dependencies
-# Core dependencies are provided by substrate base image
-
-# Additional utilities that might be needed by AKAB specifically
-# (Most dependencies are already in substrate)

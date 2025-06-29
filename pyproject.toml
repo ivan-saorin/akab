@@ -1,59 +1,64 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
+requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "akab"
-version = "1.0.0"
-description = "Adaptive Knowledge Acquisition Benchmark - AI experimentation platform"
+name = "akab-mcp"
+version = "2.0.0"
+description = "AKAB - Open-source A/B testing tool for AI outputs"
 readme = "README.md"
+requires-python = ">=3.11"
+license = {file = "LICENSE"}
 authors = [
-    {name = "Ivan Saorin", email = "ivan@example.com"}
+    {name = "Ivan", email = "ivan@example.com"},
 ]
-license = {text = "MIT"}
+keywords = ["mcp", "llm", "ab-testing", "ai", "comparison"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
-    "Intended Audience :: Science/Research",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
-    "Topic :: Scientific/Engineering :: Artificial Intelligence"
+    "Topic :: Software Development :: Testing",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
-requires-python = ">=3.11"
+
 dependencies = [
-    "mcp-server>=1.2.0",
-    "fastapi>=0.104.0",
-    "uvicorn[standard]>=0.24.0",
-    "aiofiles>=23.2.1",
-    "pydantic>=2.5.0",
-    "python-json-logger>=2.0.7"
+    "substrate-mcp @ file:///../substrate",  # Local dependency
+    "httpx>=0.24.0",
+    "pydantic>=2.0.0",
+    "aiofiles>=23.0.0",
+    "python-dotenv>=1.0.0",
 ]
 
 [project.optional-dependencies]
-all = [
-    "openai>=1.6.0",
-    "anthropic>=0.8.0",
-    "google-generativeai>=0.3.0",
-    "instructor>=0.4.0"
-]
 dev = [
     "pytest>=7.4.0",
     "pytest-asyncio>=0.21.0",
     "pytest-cov>=4.1.0",
-    "black>=23.12.0",
-    "ruff>=0.1.8"
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.5.0",
 ]
 
-[project.urls]
-Homepage = "https://github.com/ivansaorin/akab"
-Documentation = "https://github.com/ivansaorin/akab/wiki"
-Repository = "https://github.com/ivansaorin/akab"
-Issues = "https://github.com/ivansaorin/akab/issues"
+providers = [
+    "openai>=1.0.0",
+    "anthropic>=0.8.0",
+    "google-generativeai>=0.3.0",
+]
 
 [project.scripts]
 akab-server = "akab.server:main"
+
+[project.urls]
+Homepage = "https://github.com/ivan/akab-mcp"
+Documentation = "https://github.com/ivan/akab-mcp/wiki"
+Repository = "https://github.com/ivan/akab-mcp"
+Issues = "https://github.com/ivan/akab-mcp/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [tool.black]
 line-length = 88
@@ -61,27 +66,17 @@ target-version = ['py311']
 include = '\.pyi?$'
 
 [tool.ruff]
-select = ["E", "F", "I", "N", "W"]
-ignore = ["E501"]
 line-length = 88
-target-version = "py311"
+select = ["E", "F", "I", "N", "W", "B", "C90", "D"]
+ignore = ["D100", "D101", "D102", "D103", "D104", "D105", "D107"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-python_files = ["test_*.py", "*_test.py"]
-python_functions = ["test_*"]
-python_classes = ["Test*"]
 asyncio_mode = "auto"
-
-[tool.coverage.run]
-source = ["src/akab"]
-omit = ["*/tests/*", "*/test_*.py"]
-
-[tool.coverage.report]
-exclude_lines = [
-    "pragma: no cover",
-    "def __repr__",
-    "raise AssertionError",
-    "raise NotImplementedError",
-    "if __name__ == .__main__.:"
-]

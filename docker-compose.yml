@@ -1,28 +1,48 @@
-version: '3.8'
-
 services:
   akab:
     build:
       context: .
       dockerfile: Dockerfile
-    image: akab:latest
-    container_name: akab-server
-    ports:
-      - "8000:8000"
-    volumes:
-      - ./data:/data/akab
+    image: akab-mcp:latest
+    container_name: akab-mcp
     environment:
-      - DATA_PATH=/data/akab
-      - MCP_SERVER_NAME=AKAB AI Server
-      - PORT=8000
-      # Optional API keys for remote providers
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
-      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 3s
-      retries: 3
-      start_period: 40s
+      - MCP_TRANSPORT=stdio
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+    volumes:
+      - akab_data:/app/akab_data
+    stdin_open: true
+    tty: true
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Development version with source mounted
+  akab-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: akab-mcp:dev
+    container_name: akab-mcp-dev
+    environment:
+      - MCP_TRANSPORT=stdio
+      - LOG_LEVEL=DEBUG
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - PYTHONDONTWRITEBYTECODE=1
+    volumes:
+      - ./src:/app/src:ro
+      - akab_data_dev:/app/akab_data
+    stdin_open: true
+    tty: true
+    command: python -m akab
+
+volumes:
+  akab_data:
+  akab_data_dev:

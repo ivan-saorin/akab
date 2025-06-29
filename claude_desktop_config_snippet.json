@@ -1,0 +1,21 @@
+{
+  "mcpServers": {
+    "akab": {
+      "command": "docker",
+      "args": [
+        "run",
+        "--rm",
+        "-i",
+        "--name", "akab-mcp-claude",
+        "--log-driver", "json-file",
+        "--log-opt", "max-size=1m",
+        "-e", "ANTHROPIC_API_KEY=<your_api_key>",
+        "-e", "OPENAI_API_KEY=<your_api_key>",
+        "-e", "GOOGLE_API_KEY=<your_api_key>",
+        "-e", "MCP_TRANSPORT=stdio",
+        "-e", "LOG_LEVEL=INFO",
+        "akab-mcp:latest"
+      ]
+    }
+  }
+}

@@ -1,8 +1,0 @@
-{
-  "schemaVersion": 2,
-  "dockerfileLines": [
-    "FROM akab:latest",
-    "EXPOSE 8000",
-    "CMD [\"python\", \"-m\", \"akab.server\"]"
-  ]
-}

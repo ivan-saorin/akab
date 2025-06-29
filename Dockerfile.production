@@ -1,0 +1,74 @@
+# AKAB MCP Server Production Docker Image
+# Multi-stage build for optimal size and security
+
+# Stage 1: Builder
+FROM python:3.11-slim AS builder
+
+# Install build dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        build-essential \
+        git \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+
+# Copy and build AKAB
+COPY pyproject.toml README.md LICENSE ./
+COPY src/ ./src/
+
+# Install build tools
+RUN pip install --no-cache-dir build wheel
+
+# For now, install substrate from git (in production, would be from PyPI)
+RUN pip wheel --no-cache-dir --wheel-dir /wheels \
+    'substrate-mcp @ git+https://github.com/ivan/substrate-mcp.git' || \
+    pip wheel --no-cache-dir --wheel-dir /wheels fastmcp pydantic httpx
+
+# Build AKAB wheel
+RUN python -m build --wheel --outdir /wheels
+
+# Stage 2: Runtime
+FROM python:3.11-slim
+
+# Install only runtime dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN useradd -m -u 1000 -s /bin/bash akab
+
+# Install wheels from builder
+COPY --from=builder /wheels/*.whl /tmp/
+
+# Install all packages
+RUN pip install --no-cache-dir \
+    /tmp/*.whl \
+    anthropic \
+    openai \
+    google-generativeai \
+    python-dotenv \
+    aiofiles \
+    && rm -rf /tmp/*.whl
+
+# Set up application directory
+WORKDIR /app
+RUN mkdir -p /app/akab_data && chown -R akab:akab /app
+
+# Switch to non-root user
+USER akab
+
+# Environment variables
+ENV PYTHONUNBUFFERED=1 \
+    MCP_TRANSPORT=stdio \
+    AKAB_DATA_PATH=/app/akab_data \
+    LOG_LEVEL=INFO
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD python -c "import akab; print('OK')"
+
+# Run AKAB server
+CMD ["python", "-m", "akab"]

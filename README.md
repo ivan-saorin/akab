@@ -1,4 +1,4 @@
-# AKAB - Scientific A/B Testing for AI
+# AKAB - Adaptive Knowledge Acquisition Benchmark
 
 <p align="center">
   <strong>🧪 Open-source A/B testing tool for comparing AI outputs across providers</strong>

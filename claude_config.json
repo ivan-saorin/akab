@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "akab": {
+      "command": "docker",
+      "args": [
+        "run",
+        "--rm",
+        "-i",
+        "--pull", "always",
+        "-v", "C:/projects/atlas/akab/data:/data",
+        "-v", "C:/projects/atlas/krill/data:/krill",
+        "--env-file", "C:/projects/atlas/akab/.env",
+        "akab-mcp:latest"
+      ],
+      "env": {}
+    }
+  }
+}

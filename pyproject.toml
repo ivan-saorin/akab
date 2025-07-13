@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "akab"
+version = "1.0.0"
+description = "A/B Testing Framework MCP Server"
+requires-python = ">=3.12"
+dependencies = [
+    "mcp>=1.1.2",
+    "aiofiles>=24.1.0",
+    "numpy>=1.26.0",
+    "scipy>=1.11.0",
+    "anthropic>=0.39.0",
+    "openai>=1.54.4",
+    "google-generativeai>=0.3.0",
+    "substrate @ file:///substrate"
+]
+
+[project.scripts]
+akab = "akab.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

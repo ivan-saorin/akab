@@ -323,55 +323,6 @@ akab_execute_campaign(
             return await self.create_campaign(name, description, variants, base_prompt, 
                                             models, enhancement_config, success_criteria)
         
-        @self.tool(name="akab_create_enhanced_campaign")
-        async def create_enhanced_campaign(ctx, name: str, description: str,
-                                         base_prompt: str, models: List[Dict[str, str]],
-                                         enhancement_config: Dict[str, Any] = None):
-            """[DEPRECATED] Use akab_create_campaign with base_prompt and models instead.
-            
-            This method is maintained for backward compatibility only.
-            
-            Example migration:
-            ```
-            # Old way (deprecated):
-            akab_create_enhanced_campaign(
-                name="My Campaign",
-                description="Testing",
-                base_prompt="Write about X",
-                models=[{"provider": "anthropic", "size": "s"}],
-                enhancement_config={...}
-            )
-            
-            # New way:
-            akab_create_campaign(
-                name="My Campaign",
-                description="Testing",
-                base_prompt="Write about X",
-                models=[{"provider": "anthropic", "size": "s"}],
-                enhancement_config={...}
-            )
-            ```
-            """
-            # Redirect to unified create_campaign
-            logger.warning("akab_create_enhanced_campaign is deprecated. Use akab_create_campaign instead.")
-            
-            # Add deprecation notice to response
-            result = await self.create_campaign(
-                name=name,
-                description=description,
-                base_prompt=base_prompt,
-                models=models,
-                enhancement_config=enhancement_config
-            )
-            
-            if result.get("success", True):
-                result["deprecation_warning"] = (
-                    "akab_create_enhanced_campaign is deprecated. "
-                    "Use akab_create_campaign with the same parameters instead."
-                )
-            
-            return result
-        
         @self.tool(name="akab_execute_campaign")
         async def execute_campaign(ctx, campaign_id: str, iterations: int = 1,
                                   multi_turn: bool = None, max_turns: int = 10,

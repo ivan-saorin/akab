@@ -5,7 +5,7 @@ import json
 import os
 import re
 import time
-from typing import Dict, Any, Optional, Tuple
+from typing import Dict, Any, Optional, Tuple, List
 import aiofiles
 from substrate import HermesExecutor, ExecutionRequest, ExecutionResult
 import logging
@@ -290,11 +290,14 @@ class BlindedHermes(HermesExecutor):
         """Execute with Anthropic API - REAL CALLS."""
         client = self.providers["anthropic"]
         
-        # Prepare messages
-        messages = [{"role": "user", "content": request.prompt}]
+        # Check if we have messages (multi-turn) or prompt (single-turn)
+        messages = request.parameters.get("messages")
+        if not messages:
+            # Single-turn: build messages from prompt
+            messages = [{"role": "user", "content": request.prompt}]
         
         # Get parameters
-        max_tokens = request.constraints.get("max_tokens", 1000)
+        max_tokens = request.constraints.get("max_tokens", 4000)
         temperature = request.constraints.get("temperature", 0.7)
         
         # Make REAL API call
@@ -337,11 +340,14 @@ class BlindedHermes(HermesExecutor):
         """Execute with OpenAI API - REAL CALLS."""
         client = self.providers["openai"]
         
-        # Prepare messages
-        messages = [{"role": "user", "content": request.prompt}]
+        # Check if we have messages (multi-turn) or prompt (single-turn)
+        messages = request.parameters.get("messages")
+        if not messages:
+            # Single-turn: build messages from prompt
+            messages = [{"role": "user", "content": request.prompt}]
         
         # Get parameters
-        max_tokens = request.constraints.get("max_tokens", 1000)
+        max_tokens = request.constraints.get("max_tokens", 4000)
         temperature = request.constraints.get("temperature", 0.7)
         
         # Make REAL API call
@@ -387,8 +393,23 @@ class BlindedHermes(HermesExecutor):
         import asyncio
         genai = self.providers["google"]
         
+        # Google doesn't support messages format directly
+        # We need to convert messages to a single prompt
+        messages = request.parameters.get("messages")
+        if messages:
+            # Convert messages to single prompt
+            prompt_parts = []
+            for msg in messages:
+                if msg["role"] == "user":
+                    prompt_parts.append(f"User: {msg['content']}")
+                else:
+                    prompt_parts.append(f"Assistant: {msg['content']}")
+            prompt = "\n".join(prompt_parts) + "\nAssistant:"
+        else:
+            prompt = request.prompt
+        
         # Get parameters
-        max_tokens = request.constraints.get("max_tokens", 1000)
+        max_tokens = request.constraints.get("max_tokens", 4000)
         temperature = request.constraints.get("temperature", 0.7)
         
         # Create model
@@ -397,7 +418,7 @@ class BlindedHermes(HermesExecutor):
         # Google's API is sync, so we run in executor
         def _generate():
             response = model.generate_content(
-                request.prompt,
+                prompt,
                 generation_config={
                     "max_output_tokens": max_tokens,
                     "temperature": temperature,
@@ -409,7 +430,7 @@ class BlindedHermes(HermesExecutor):
         response = await loop.run_in_executor(None, _generate)
         
         # Estimate tokens (Google doesn't always provide exact counts)
-        input_tokens = len(request.prompt.split()) * 1.3
+        input_tokens = len(prompt.split()) * 1.3
         output_tokens = len(response.text.split()) * 1.3
         
         # Calculate cost (pricing as of 2024)

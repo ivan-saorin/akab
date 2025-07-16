@@ -134,41 +134,113 @@ IMPORTANT: Return ONLY the JSON array, no other text."""
                                       prompts: List[str]) -> Dict[str, List[float]]:
         """
         Evaluate all results from a campaign, grouped by variant.
+        Handles both Level 2 (each variant has own prompt) and Level 3 (shared prompts).
         
         Returns:
             Dict mapping variant IDs to lists of quality scores
         """
         quality_scores_by_variant = {}
         
-        # Group results by prompt for batch evaluation
-        for prompt_idx, prompt in enumerate(prompts):
-            # Get all responses for this prompt
-            prompt_results = [r for r in campaign_results if r.get("prompt_index") == prompt_idx]
-            
-            if not prompt_results:
-                continue
-            
-            # Prepare responses for evaluation
-            responses_to_eval = []
-            for result in prompt_results:
-                if result.get("success") and result.get("response"):
-                    responses_to_eval.append({
-                        "variant": result["variant"],
-                        "response": result["response"]
-                    })
-            
-            if responses_to_eval:
-                # Evaluate this batch
-                evaluations = await self.evaluate_responses(responses_to_eval, prompt)
+        # Debug logging
+        print(f"QualityJudge: Evaluating {len(campaign_results)} results with {len(prompts)} prompts")
+        
+        # Check if this is a Level 3 experiment (has prompt_index) or Level 2 (no prompt_index)
+        has_prompt_index = any("prompt_index" in r for r in campaign_results)
+        
+        if has_prompt_index:
+            # Level 3: Multiple prompts tested on all variants
+            for prompt_idx, prompt in enumerate(prompts):
+                # Get all responses for this prompt
+                prompt_results = [r for r in campaign_results if r.get("prompt_index") == prompt_idx]
                 
-                # Store scores by variant
-                for eval_result in evaluations:
-                    variant_id = eval_result["variant"]
-                    score = eval_result["overall_score"]
+                if not prompt_results:
+                    continue
+                
+                # Prepare responses for evaluation
+                responses_to_eval = []
+                for result in prompt_results:
+                    if result.get("success") and result.get("response"):
+                        responses_to_eval.append({
+                            "variant": result["variant"],
+                            "response": result["response"]
+                        })
+                
+                if responses_to_eval:
+                    # Evaluate this batch
+                    evaluations = await self.evaluate_responses(responses_to_eval, prompt)
                     
-                    if variant_id not in quality_scores_by_variant:
-                        quality_scores_by_variant[variant_id] = []
+                    # Store scores by variant
+                    for eval_result in evaluations:
+                        variant_id = eval_result["variant"]
+                        score = eval_result["overall_score"]
+                        
+                        if variant_id not in quality_scores_by_variant:
+                            quality_scores_by_variant[variant_id] = []
+                        
+                        quality_scores_by_variant[variant_id].append(score)
+        else:
+            # Level 2: Each variant has its own prompt
+            # First, extract unique variant IDs from results (these are blinded IDs)
+            variant_ids_in_results = []
+            seen = set()
+            for result in campaign_results:
+                variant_id = result.get("variant")
+                if variant_id and variant_id not in seen:
+                    variant_ids_in_results.append(variant_id)
+                    seen.add(variant_id)
+            
+            print(f"QualityJudge Level 2: Found variants {variant_ids_in_results}")
+            print(f"QualityJudge Level 2: Prompts provided: {[p[:30] + '...' for p in prompts]}")
+            
+            # Check if results have responses
+            has_responses = any(r.get("response") for r in campaign_results)
+            print(f"QualityJudge Level 2: Results have responses: {has_responses}")
+            if has_responses:
+                sample_response = next(r.get("response", "")[:50] for r in campaign_results if r.get("response"))
+                print(f"QualityJudge Level 2: Sample response: {sample_response}...")
+            else:
+                print("QualityJudge Level 2: WARNING - No responses found in results!")
+            
+            # Group results by variant
+            results_by_variant = {}
+            for result in campaign_results:
+                variant_id = result.get("variant")
+                if variant_id:
+                    if variant_id not in results_by_variant:
+                        results_by_variant[variant_id] = []
+                    results_by_variant[variant_id].append(result)
+            
+            # Map blinded variant IDs to prompts based on order
+            # Assuming prompts are in the same order as variants were created
+            # and blinded IDs appear in results in the same order
+            for i, variant_id in enumerate(variant_ids_in_results):
+                if variant_id not in results_by_variant:
+                    continue
                     
-                    quality_scores_by_variant[variant_id].append(score)
+                variant_results = results_by_variant[variant_id]
+                # Get the prompt for this variant based on position
+                prompt = prompts[i] if i < len(prompts) else prompts[0]
+                
+                # Prepare responses for evaluation
+                responses_to_eval = []
+                for result in variant_results:
+                    if result.get("success") and result.get("response"):
+                        responses_to_eval.append({
+                            "variant": result["variant"],
+                            "response": result["response"]
+                        })
+                
+                if responses_to_eval:
+                    # Evaluate this batch
+                    evaluations = await self.evaluate_responses(responses_to_eval, prompt)
+                    
+                    # Store scores by variant
+                    for eval_result in evaluations:
+                        score = eval_result["overall_score"]
+                        
+                        if variant_id not in quality_scores_by_variant:
+                            quality_scores_by_variant[variant_id] = []
+                        
+                        quality_scores_by_variant[variant_id].append(score)
         
         return quality_scores_by_variant

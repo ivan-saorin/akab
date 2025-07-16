@@ -17,6 +17,7 @@ from .laboratory import Laboratory
 from .blinded_hermes import BlindedHermes
 from .clear_hermes import ClearHermes
 from .judge import QualityJudge
+from .multi_turn import MultiTurnExecutor, EnhancedCampaignExecutor
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -26,11 +27,135 @@ class AkabServer(SubstrateMCP):
     """A/B Testing Framework MCP Server"""
     
     def __init__(self):
+        # Configure logging to ensure we see debug messages
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+            handlers=[
+                logging.StreamHandler(),  # Console output
+            ]
+        )
+        logger.info("AKAB Server initializing with debug logging enabled")
+        
         super().__init__(
             name="akab",
             version="1.0.0",
-            description="A/B Testing Framework with scientific rigor",
-            instructions="Use akab for pure A/B testing with blinded execution and statistical analysis."
+            description="A/B Testing Framework with scientific rigor and multi-turn execution support",
+            instructions="""Use akab for rigorous A/B testing with blinded execution, statistical analysis, and multi-turn support.
+
+## Core Features:
+- **Level 1**: Quick comparison (no blinding) - use `akab_quick_compare`
+- **Level 2**: Blinded A/B testing with campaign management - use `akab_create_campaign`
+- **Level 3**: Scientific experiments with complete model scrambling - use `akab_create_experiment`
+- **Multi-turn execution**: Test prompts that require multiple model interactions
+
+## Creating Campaigns: One Unified Method
+
+`akab_create_campaign` supports two modes:
+
+### Mode 1: Direct Variants (Full Control)
+Specify each variant explicitly when you need:
+- Different prompts per variant
+- Complex custom configurations
+- Fine-grained control
+
+```python
+akab_create_campaign(
+    name="My Campaign",
+    description="Testing different approaches",
+    variants=[{
+        "id": "haiku_friendly",
+        "provider": "anthropic",
+        "size": "s",  # Uses claude-3-haiku
+        "prompt": "Write a friendly explanation of quantum physics",
+        "multi_turn": true,
+        "target_tokens": 5000
+    }, {
+        "id": "sonnet_technical",
+        "provider": "anthropic",
+        "size": "m",  # Uses claude-3.5-sonnet
+        "prompt": "Write a technical explanation of quantum physics",
+        "multi_turn": true,
+        "target_tokens": 5000
+    }]
+)
+```
+
+### Mode 2: Auto-Generate from Base (Quick Setup)
+Perfect for:
+- Testing same prompt across models
+- Quick model comparisons
+- Optional Synapse enhancement
+
+```python
+akab_create_campaign(
+    name="Model Comparison",
+    description="Compare models on same task",
+    base_prompt="Write a comprehensive guide about quantum physics. MINIMUM 5000 words.",
+    models=[
+        {"provider": "anthropic", "size": "s"},  # Haiku
+        {"provider": "anthropic", "size": "m"},  # Sonnet
+        {"provider": "anthropic", "size": "xl"}  # Opus
+    ],
+    enhancement_config={
+        "enhance": true,          # Apply Synapse patterns
+        "include_baseline": true, # Test both enhanced and original
+        "multi_turn": true,       # Enable continuation
+        "target_tokens": 10000    # Target output length
+    }
+)
+```
+
+## Model Nicknames (Universal)
+All methods support size nicknames:
+- `"xs"` → Extra small (Haiku old, GPT-3.5)
+- `"s"`  → Small (Haiku new, GPT-4-mini)
+- `"m"`  → Medium (Sonnet, GPT-4)
+- `"l"`  → Large (Sonnet, GPT-4-turbo)
+- `"xl"` → Extra large (Opus, GPT-4-turbo)
+
+## Multi-Turn Testing:
+
+Enable multi-turn in any campaign for long-form content generation:
+
+### At Campaign Creation:
+```python
+# In variants
+variant["multi_turn"] = true
+variant["target_tokens"] = 10000
+
+# Or in enhancement_config
+enhancement_config["multi_turn"] = true
+```
+
+### At Execution (Override):
+```python
+akab_execute_campaign(
+    campaign_id="your_campaign_id",
+    multi_turn=true,      # Force multi-turn
+    max_turns=15,         # Maximum attempts
+    target_tokens=10000   # Stop at this length
+)
+```
+
+## Multi-Turn Behavior:
+- **Auto-detection**: Campaigns with prompts containing "MINIMUM", "[CONTINUING...]" automatically use multi-turn
+- **Continuation prompts**: After first turn, models receive "continue" or context reminders
+- **Completion detection**: Stops on natural completion markers ([DONE], [END], etc.) or target tokens
+- **Fair metrics**: Analysis accounts for turns used, tokens per turn, and completion efficiency
+
+## Best Practices:
+1. Set `target_tokens` based on expected output length
+2. Use `max_turns` to prevent infinite loops (default: 10)
+3. Include clear instructions in prompt for best results
+4. Analyze with `akab_analyze_results` to see multi-turn metrics
+
+## Example Workflow:
+1. Create enhanced campaign with multi-turn enabled
+2. Execute campaign (multi-turn handled automatically)
+3. Analyze results to see turns used, token efficiency
+4. Compare models fairly on long-form generation tasks
+"""
         )
         
         self.data_dir = os.getenv("DATA_DIR", "./data")
@@ -72,15 +197,46 @@ class AkabServer(SubstrateMCP):
         # Initialize Level 3 scrambled models (fire-and-forget)
         self.scrambled_models = self._initialize_scrambling()
         
+        # Initialize multi-turn executor
+        self.multi_turn_executor = MultiTurnExecutor(
+            hermes=self.hermes,
+            sampling_manager=self.sampling_manager
+        )
+        
+        # Initialize enhanced campaign executor
+        self.enhanced_executor = EnhancedCampaignExecutor(
+            multi_turn_executor=self.multi_turn_executor,
+            pattern_enhancer=None,  # Will be set if Synapse is available
+            model_sizes=self.model_sizes
+        )
+        
+        # Try to connect to Synapse for pattern enhancement
+        self._initialize_synapse_connection()
+        
         # Register tools
         self._register_tools()
+    
+    def _initialize_synapse_connection(self):
+        """Try to connect to Synapse for pattern enhancement"""
+        try:
+            # This would be the actual connection logic
+            # For now, we'll just set a flag
+            self.synapse_available = False
+            
+            # In production, you'd check if Synapse MCP is available
+            # and create a client connection
+            logger.info("Synapse pattern enhancement not connected")
+            
+        except Exception as e:
+            logger.warning(f"Could not connect to Synapse: {e}")
+            self.synapse_available = False
     
     async def get_capabilities(self) -> Dict[str, Any]:
         """Return server capabilities"""
         return {
             "tools": [
                 "akab_quick_compare",
-                "akab_create_campaign", 
+                "akab_create_campaign",
                 "akab_execute_campaign",
                 "akab_analyze_results",
                 "akab_list_campaigns",
@@ -104,7 +260,10 @@ class AkabServer(SubstrateMCP):
                 "Success criteria for campaigns",
                 "Campaign unlocking (Level 2)",
                 "Fire-and-forget model scrambling (Level 3)",
-                "Scientific experiments with hypothesis testing"
+                "Scientific experiments with hypothesis testing",
+                "Multi-turn execution support",
+                "Unified campaign creation with optional enhancements",
+                "Fair multi-turn metrics calculation"
             ],
             "providers": self.valid_providers,
             "default_models": self.default_models
@@ -123,15 +282,102 @@ class AkabServer(SubstrateMCP):
             return await self.quick_compare(prompt, providers, constraints)
         
         @self.tool(name="akab_create_campaign")
-        async def create_campaign(ctx, name: str, description: str, variants: List[Dict[str, Any]],
+        async def create_campaign(ctx, name: str, description: str, 
+                                variants: List[Dict[str, Any]] = None,
+                                base_prompt: str = None,
+                                models: List[Dict[str, str]] = None,
+                                enhancement_config: Dict[str, Any] = None,
                                 success_criteria: Dict[str, Any] = None):
-            """Create new A/B testing campaign with optional success criteria"""
-            return await self.create_campaign(name, description, variants, success_criteria)
+            """Create new A/B testing campaign with full flexibility
+            
+            Two ways to create campaigns:
+            
+            1. Direct variants (full control):
+            ```
+            variants=[{
+                "id": "variant_1",
+                "provider": "anthropic",
+                "size": "s",  # or "model": "claude-3-haiku-20240307"
+                "prompt": "Your prompt",
+                "multi_turn": true,
+                "target_tokens": 5000
+            }]
+            ```
+            
+            2. Auto-generate from base prompt:
+            ```
+            base_prompt="Your prompt",
+            models=[{"provider": "anthropic", "size": "s"}],
+            enhancement_config={
+                "enhance": true,  # Apply Synapse enhancements
+                "include_baseline": true,
+                "multi_turn": true,
+                "target_tokens": 5000
+            }
+            ```
+            
+            Model specification supports nicknames:
+            - Size nicknames: "xs", "s", "m", "l", "xl"
+            - Full names: "claude-3-haiku-20240307"
+            """
+            return await self.create_campaign(name, description, variants, base_prompt, 
+                                            models, enhancement_config, success_criteria)
+        
+        @self.tool(name="akab_create_enhanced_campaign")
+        async def create_enhanced_campaign(ctx, name: str, description: str,
+                                         base_prompt: str, models: List[Dict[str, str]],
+                                         enhancement_config: Dict[str, Any] = None):
+            """[DEPRECATED] Use akab_create_campaign with base_prompt and models instead.
+            
+            This method is maintained for backward compatibility only.
+            
+            Example migration:
+            ```
+            # Old way (deprecated):
+            akab_create_enhanced_campaign(
+                name="My Campaign",
+                description="Testing",
+                base_prompt="Write about X",
+                models=[{"provider": "anthropic", "size": "s"}],
+                enhancement_config={...}
+            )
+            
+            # New way:
+            akab_create_campaign(
+                name="My Campaign",
+                description="Testing",
+                base_prompt="Write about X",
+                models=[{"provider": "anthropic", "size": "s"}],
+                enhancement_config={...}
+            )
+            ```
+            """
+            # Redirect to unified create_campaign
+            logger.warning("akab_create_enhanced_campaign is deprecated. Use akab_create_campaign instead.")
+            
+            # Add deprecation notice to response
+            result = await self.create_campaign(
+                name=name,
+                description=description,
+                base_prompt=base_prompt,
+                models=models,
+                enhancement_config=enhancement_config
+            )
+            
+            if result.get("success", True):
+                result["deprecation_warning"] = (
+                    "akab_create_enhanced_campaign is deprecated. "
+                    "Use akab_create_campaign with the same parameters instead."
+                )
+            
+            return result
         
         @self.tool(name="akab_execute_campaign")
-        async def execute_campaign(ctx, campaign_id: str, iterations: int = 1):
-            """Execute A/B testing campaign"""
-            return await self.execute_campaign(campaign_id, iterations)
+        async def execute_campaign(ctx, campaign_id: str, iterations: int = 1,
+                                  multi_turn: bool = None, max_turns: int = 10,
+                                  target_tokens: Optional[int] = None):
+            """Execute A/B testing campaign with optional multi-turn support"""
+            return await self.execute_campaign(campaign_id, iterations, multi_turn, max_turns, target_tokens)
         
         @self.tool(name="akab_analyze_results")
         async def analyze_results(ctx, campaign_id: str):
@@ -302,10 +548,44 @@ class AkabServer(SubstrateMCP):
             )
     
     async def create_campaign(self, name: str, description: str, 
-                            variants: List[Dict[str, Any]],
+                            variants: List[Dict[str, Any]] = None,
+                            base_prompt: str = None,
+                            models: List[Dict[str, str]] = None,
+                            enhancement_config: Dict[str, Any] = None,
                             success_criteria: Dict[str, Any] = None) -> Dict[str, Any]:
-        """Create new Level 2 campaign with success criteria"""
+        """Create new Level 2 campaign with full flexibility"""
         try:
+            # Determine which mode to use
+            if variants is None and base_prompt is not None and models is not None:
+                # Auto-generate mode: use enhanced campaign executor
+                if enhancement_config is None:
+                    enhancement_config = {
+                        "enhance": False,  # Default to no enhancement
+                        "include_baseline": True,
+                        "multi_turn": False,
+                        "target_tokens": None,
+                        "strategy": "auto"
+                    }
+                
+                # Create enhanced campaign configuration
+                campaign_config = await self.enhanced_executor.create_enhanced_campaign(
+                    name=name,
+                    description=description,
+                    base_prompt=base_prompt,
+                    models=models,
+                    enhancement_config=enhancement_config
+                )
+                
+                # Extract variants from config
+                variants = campaign_config["variants"]
+                
+            elif variants is None:
+                raise ValidationError(
+                    "Must provide either 'variants' or both 'base_prompt' and 'models'",
+                    field="variants",
+                    suggestions=["Provide variants array or use base_prompt with models"]
+                )
+            
             # Validate variants
             if len(variants) < 2:
                 raise ValidationError(
@@ -314,8 +594,22 @@ class AkabServer(SubstrateMCP):
                     suggestions=["Add more variants to compare"]
                 )
             
-            required_fields = ["id", "provider", "model", "prompt"]
+            # Transform model nicknames in variants
+            transformed_variants = []
             for variant in variants:
+                transformed_variant = variant.copy()
+                
+                # Handle model nickname transformation
+                if "size" in variant and variant.get("provider") in self.model_sizes:
+                    # Use size to lookup real model name
+                    provider = variant["provider"]
+                    size = variant["size"]
+                    transformed_variant["model"] = self.model_sizes[provider].get(size, variant.get("model", ""))
+                
+                transformed_variants.append(transformed_variant)
+            
+            required_fields = ["id", "provider", "model", "prompt"]
+            for variant in transformed_variants:
                 missing = [f for f in required_fields if f not in variant]
                 if missing:
                     raise ValidationError(
@@ -334,23 +628,48 @@ class AkabServer(SubstrateMCP):
             # Validate success criteria if provided
             if success_criteria:
                 # Ensure required fields
-                if "primary_metric" not in success_criteria:
-                    success_criteria["primary_metric"] = "execution_time"
-                if "direction" not in success_criteria:
-                    success_criteria["direction"] = "minimize"
                 if "evaluation_method" not in success_criteria:
                     success_criteria["evaluation_method"] = "statistical"
+                    
+                # Set defaults based on evaluation method
+                if success_criteria.get("evaluation_method") == "llm_judge":
+                    # For LLM judge, default to quality score
+                    if "primary_metric" not in success_criteria:
+                        success_criteria["primary_metric"] = "quality_score"
+                    if "direction" not in success_criteria:
+                        success_criteria["direction"] = "maximize"
+                else:
+                    # For statistical evaluation, default to execution time
+                    if "primary_metric" not in success_criteria:
+                        success_criteria["primary_metric"] = "execution_time"
+                    if "direction" not in success_criteria:
+                        success_criteria["direction"] = "minimize"
             
             campaign = await self.campaign_manager.create_campaign(
-                name, description, variants, success_criteria, level=2
+                name, description, transformed_variants, success_criteria, level=2
             )
             
+            # Prepare response data
+            response_data = {
+                "campaign_id": campaign.id,
+                "name": campaign.name,
+                "status": "created",
+                "variants": len(campaign.variants),
+                "level": 2
+            }
+            
+            # Add enhanced campaign info if using base_prompt mode
+            if base_prompt is not None:
+                response_data.update({
+                    "enhanced_variants": sum(1 for v in campaign.variants if "enhanced" in v["id"]),
+                    "baseline_variants": sum(1 for v in campaign.variants if "baseline" in v["id"]),
+                    "multi_turn_enabled": enhancement_config.get("multi_turn", False) if enhancement_config else False,
+                    "target_tokens": enhancement_config.get("target_tokens") if enhancement_config else None
+                })
+            
             return self.create_response(
-                data={
-                    "campaign": campaign.to_dict(),
-                    "status": "created"
-                },
-                message=f"Campaign '{name}' created successfully"
+                data=response_data,
+                message=f"Campaign '{name}' created with {len(campaign.variants)} variants"
             )
         except ValidationError:
             raise
@@ -722,23 +1041,92 @@ class AkabServer(SubstrateMCP):
         except Exception as e:
             return self.create_error_response(str(e))
     
-    async def execute_campaign(self, campaign_id: str, iterations: int) -> Dict[str, Any]:
-        """Execute campaign with progress tracking"""
+    async def execute_campaign(self, campaign_id: str, iterations: int = 1,
+                              multi_turn: bool = None, max_turns: int = 10,
+                              target_tokens: Optional[int] = None) -> Dict[str, Any]:
+        """Execute A/B testing campaign with optional multi-turn support
+        
+        Args:
+            campaign_id: Campaign to execute
+            iterations: Number of test iterations
+            multi_turn: Enable multi-turn execution (auto-detect if None)
+            max_turns: Maximum turns per test (for multi-turn)
+            target_tokens: Target token count (for multi-turn)
+        
+        Returns:
+            Execution summary with results saved to campaign
+        """
         try:
+            # Load campaign
+            campaign = await self.campaign_manager.get_campaign(campaign_id)
+            if not campaign:
+                raise ValidationError(f"Campaign {campaign_id} not found")
+            
+            if campaign.status != "active":
+                raise ValidationError(
+                    f"Campaign is {campaign.status}, not active",
+                    suggestions=["Create a new campaign or reactivate this one"]
+                )
+            
+            # Auto-detect multi-turn need
+            if multi_turn is None:
+                # Check if any variant has multi_turn flag or uses stable genius
+                multi_turn = any(
+                    v.get("multi_turn", False) or 
+                    "MINIMUM" in v.get("prompt", "") or
+                    "[CONTINUING...]" in v.get("prompt", "")
+                    for v in campaign.variants
+                )
+            
+            logger.info(f"Starting execution of campaign {campaign_id}")
+            logger.info(f"Iterations: {iterations}, Multi-turn: {multi_turn}")
+            logger.info(f"Variants: {[v.get('id') + ' multi_turn=' + str(v.get('multi_turn', False)) for v in campaign.variants]}")
+            
+            # Track progress
+            total_tests = len(campaign.variants) * iterations
+            completed_tests = 0
+            
+            # Execute based on mode
+            if multi_turn:
+                # Use multi-turn executor
+                results = await self.multi_turn_executor.execute_campaign_with_continuation(
+                    campaign=campaign,
+                    iterations=iterations,
+                    max_turns_per_test=max_turns,
+                    target_tokens=target_tokens
+                )
+            else:
+                # Use standard execution with progress
+                async with self.progress_context(f"campaign_{campaign_id}") as progress:
+                    result = await self._execute_campaign_with_progress(
+                        campaign_id, iterations, progress, 0, 1
+                    )
+                    return result
+            
+            # Save results to campaign (for multi-turn path)
+            for result in results:
+                # Ensure result has required fields for storage
+                if "variant" in result and "success" in result:
+                    # Add to campaign results
+                    await self.campaign_manager.add_result(campaign_id, result)
+            
+            # Reload campaign to get updated results
             campaign = await self.campaign_manager.get_campaign(campaign_id)
             
-            if not campaign:
-                raise ValidationError(
-                    f"Campaign not found: {campaign_id}",
-                    field="campaign_id",
-                    suggestions=["Check campaign ID", "List campaigns with akab_list_campaigns"]
-                )
+            # Update campaign metadata
+            campaign.last_run = time.time()
+            campaign.metadata["total_tests"] = len(campaign.results)
+            campaign.metadata["multi_turn_enabled"] = multi_turn
             
-            async with self.progress_context(f"campaign_{campaign_id}") as progress:
-                result = await self._execute_campaign_with_progress(
-                    campaign_id, iterations, progress, 0, 1
-                )
-                return result
+            await self.campaign_manager._save_campaign(campaign)
+            
+            # Calculate summary
+            summary = self._calculate_execution_summary(results, multi_turn)
+            
+            return self.create_response(
+                data=summary,
+                message=f"Campaign executed successfully with {len(results)} tests"
+            )
                 
         except ValidationError:
             raise
@@ -759,6 +1147,85 @@ class AkabServer(SubstrateMCP):
                 )
             else:
                 return self.create_error_response(str(e))
+    
+    def _calculate_execution_summary(self, results: List[Dict[str, Any]], 
+                                   multi_turn: bool) -> Dict[str, Any]:
+        """Calculate execution summary with multi-turn awareness"""
+        
+        summary = {
+            "total_tests": len(results),
+            "successful_tests": sum(1 for r in results if r.get("success", False)),
+            "failed_tests": sum(1 for r in results if not r.get("success", False)),
+            "multi_turn": multi_turn
+        }
+        
+        if multi_turn:
+            # Add multi-turn specific metrics
+            successful_results = [r for r in results if r.get("success", False)]
+            
+            if successful_results:
+                summary["multi_turn_metrics"] = {
+                    "avg_turns": sum(r.get("turns_used", 1) for r in successful_results) / len(successful_results),
+                    "max_turns": max(r.get("turns_used", 1) for r in successful_results),
+                    "min_turns": min(r.get("turns_used", 1) for r in successful_results),
+                    "total_tokens_generated": sum(r.get("total_tokens", 0) for r in successful_results),
+                    "natural_completions": sum(1 for r in successful_results if r.get("completed_naturally", False))
+                }
+        
+        # Calculate costs
+        total_cost = sum(r.get("total_cost", r.get("cost", 0)) for r in results)
+        summary["total_cost"] = round(total_cost, 4)
+        
+        # Execution time
+        exec_times = []
+        for r in results:
+            if "execution_times" in r:
+                exec_times.extend(r["execution_times"])
+            elif "execution_time" in r:
+                exec_times.append(r["execution_time"])
+        
+        if exec_times:
+            summary["avg_execution_time"] = sum(exec_times) / len(exec_times)
+            summary["total_execution_time"] = sum(exec_times)
+        
+        return summary
+    
+    async def _save_analysis_results(self, campaign_id: str, analysis_result: Dict[str, Any], 
+                                   is_multi_turn: bool) -> None:
+        """Save analysis results for future reference"""
+        try:
+            # You could implement saving to a results file or database here
+            # For now, just log it
+            logger.info(f"Analysis results for campaign {campaign_id} (multi-turn: {is_multi_turn})")
+        except Exception as e:
+            logger.warning(f"Failed to save analysis results: {e}")
+    
+    async def score_multi_turn_quality(self, result: Dict[str, Any]) -> float:
+        """Score quality of multi-turn generation"""
+        
+        content = result.get("content", "")
+        turns_used = result.get("turns_used", 1)
+        completed_naturally = result.get("completed_naturally", False)
+        
+        # Base quality score (could use LLM judge here)
+        base_score = len(content) / 1000  # Simple length-based score
+        
+        # Adjust for efficiency
+        efficiency_bonus = 0
+        if completed_naturally:
+            # Bonus for natural completion
+            efficiency_bonus += 0.1
+        
+        # Penalty for too many turns (inefficient)
+        if turns_used > 5:
+            efficiency_bonus -= 0.05 * (turns_used - 5)
+        
+        # Token efficiency
+        tokens_per_turn = result.get("total_tokens", 0) / turns_used
+        if tokens_per_turn > 2000:
+            efficiency_bonus += 0.05
+        
+        return min(1.0, base_score + efficiency_bonus)
     
     async def _execute_campaign_with_progress(self, campaign_id: str, iterations: int,
                                             progress_callback: Callable, 
@@ -1017,28 +1484,71 @@ class AkabServer(SubstrateMCP):
         return await asyncio.gather(*bounded_tasks)
     
     async def analyze_results(self, campaign_id: str) -> Dict[str, Any]:
-        """Analyze campaign results with rich annotations"""
+        """Analyze campaign results with multi-turn awareness"""
         try:
             campaign = await self.campaign_manager.get_campaign(campaign_id)
-            
             if not campaign:
-                raise ValidationError(
-                    f"Campaign not found: {campaign_id}",
-                    field="campaign_id",
-                    suggestions=["Check campaign ID", "List campaigns with akab_list_campaigns"]
-                )
+                raise ValidationError(f"Campaign {campaign_id} not found")
             
-            analysis = await self._analyze_results_internal(campaign)
+            # Always use internal analysis first
+            analysis_result = await self._analyze_results_internal(campaign)
+            
+            # Check if this was a multi-turn campaign and enhance results
+            is_multi_turn = campaign.metadata.get("multi_turn_enabled", False)
+            
+            if is_multi_turn:
+                # Calculate fair metrics for multi-turn campaigns
+                fair_metrics = self.enhanced_executor.calculate_fair_metrics(campaign.results)
+                
+                # Add multi-turn specific insights to the analysis
+                analysis_result["multi_turn_analysis"] = {
+                    "fair_metrics": fair_metrics,
+                    "avg_turns_by_variant": {
+                        k: v["avg_turns_used"] 
+                        for k, v in fair_metrics.items()
+                    },
+                    "token_efficiency": {
+                        k: v["avg_total_tokens"] / v["avg_turns_used"] if v["avg_turns_used"] > 0 else 0
+                        for k, v in fair_metrics.items()
+                    },
+                    "cost_per_1k_tokens": {
+                        k: (v["avg_cost_per_test"] / v["avg_total_tokens"]) * 1000 if v["avg_total_tokens"] > 0 else 0
+                        for k, v in fair_metrics.items()
+                    },
+                    "response_length_per_turn": {
+                        k: v["avg_response_length"] / v["avg_turns_used"] if v["avg_turns_used"] > 0 else 0
+                        for k, v in fair_metrics.items()
+                    }
+                }
+                
+                # Update the winner selection to consider multi-turn metrics
+                if not analysis_result.get("clear_winner") and fair_metrics:
+                    # Find best by token efficiency (most output per token)
+                    best_by_efficiency = max(
+                        fair_metrics.items(),
+                        key=lambda x: x[1]["avg_response_length"] / x[1]["avg_total_tokens"] if x[1]["avg_total_tokens"] > 0 else 0
+                    )
+                    analysis_result["multi_turn_winner"] = best_by_efficiency[0]
+                    analysis_result["multi_turn_conclusion"] = (
+                        f"{best_by_efficiency[0]} achieved best token efficiency with "
+                        f"{best_by_efficiency[1]['avg_response_length']:.0f} chars using "
+                        f"{best_by_efficiency[1]['avg_total_tokens']:.0f} tokens across "
+                        f"{best_by_efficiency[1]['avg_turns_used']:.1f} turns"
+                    )
+            
+            # Save analysis to results if multi-turn
+            if is_multi_turn:
+                await self._save_analysis_results(campaign_id, analysis_result, is_multi_turn)
             
             # Determine annotations based on results
-            if analysis.get("clear_winner"):
+            if analysis_result.get("clear_winner"):
                 annotations = {
                     "priority": 0.9,
                     "tone": "confident",
                     "visualization": "winner_highlight"
                 }
-                message = f"Clear winner: {analysis['winner']} - {analysis['conclusion']}"
-            elif analysis.get("insufficient_data"):
+                message = f"Clear winner: {analysis_result['winner']} - {analysis_result['conclusion']}"
+            elif analysis_result.get("insufficient_data"):
                 annotations = {
                     "priority": 0.5,
                     "tone": "cautious",
@@ -1051,14 +1561,14 @@ class AkabServer(SubstrateMCP):
                     "tone": "analytical",
                     "visualization": "detailed_comparison"
                 }
-                message = analysis.get("conclusion", "Analysis complete")
+                message = analysis_result.get("conclusion", "Analysis complete")
             
             # Mark as completed if enough results
             if len(campaign.results) >= len(campaign.variants) * 10:
                 await self.campaign_manager.complete_campaign(campaign_id)
             
             return self.create_response(
-                data=analysis,
+                data=analysis_result,
                 message=message,
                 annotations=annotations
             )
@@ -1129,7 +1639,7 @@ class AkabServer(SubstrateMCP):
             krill_archive_dir.mkdir(parents=True, exist_ok=True)
             
             # Get campaign directory path
-            campaign_source_dir = Path(self.data_dir) / "campaigns" / "standard"
+            campaign_source_dir = Path(self.krill_dir) / "campaigns" / "standard"
             campaign_file = campaign_source_dir / f"{campaign_id}.json"
             
             # Copy blinded state (before unlock)
@@ -1140,7 +1650,7 @@ class AkabServer(SubstrateMCP):
                 shutil.copy2(campaign_file, blinded_dir / "campaign.json")
             
             # Also copy results if they exist
-            results_dir = Path(self.data_dir) / "results" / campaign_id
+            results_dir = Path(self.krill_dir) / "results" / campaign_id
             if results_dir.exists():
                 shutil.copytree(results_dir, blinded_dir / "results", dirs_exist_ok=True)
             
@@ -1288,7 +1798,7 @@ class AkabServer(SubstrateMCP):
             krill_archive_dir.mkdir(parents=True, exist_ok=True)
             
             # Get experiment directory path
-            experiment_source_dir = Path(self.data_dir) / "campaigns" / "experiments"
+            experiment_source_dir = Path(self.krill_dir) / "campaigns" / "experiments"
             experiment_file = experiment_source_dir / f"{experiment_id}.json"
             
             # Copy blinded state (before adding full mappings)
@@ -1304,7 +1814,7 @@ class AkabServer(SubstrateMCP):
                 json.dump(blinded_experiment, f, indent=2)
             
             # Copy results
-            results_dir = Path(self.data_dir) / "results" / experiment_id
+            results_dir = Path(self.krill_dir) / "results" / experiment_id
             if results_dir.exists():
                 shutil.copytree(results_dir, blinded_dir / "results", dirs_exist_ok=True)
             
@@ -1469,19 +1979,46 @@ class AkabServer(SubstrateMCP):
         
         # Get success criteria
         success_criteria = getattr(campaign, 'success_criteria', None)
+        logger.info(f"Analysis: success_criteria = {success_criteria}")
+        logger.info(f"Analysis: variant_stats count = {len(variant_stats)}")
+        
         if success_criteria and len(variant_stats) >= 2:
             primary_metric = success_criteria.get("primary_metric", "execution_time")
             direction = success_criteria.get("direction", "minimize")
             evaluation_method = success_criteria.get("evaluation_method", "statistical")
             
-            # For Level 3 with quality evaluation
-            if (campaign_level == 3 or is_experiment) and evaluation_method == "llm_judge":
+            logger.info(f"Analysis: evaluation_method = {evaluation_method}")
+            logger.info(f"Analysis: primary_metric = {primary_metric}")
+            
+            # For campaigns with quality evaluation (Level 2 or 3)
+            if evaluation_method == "llm_judge":
+                logger.info(f"Starting quality evaluation for campaign {campaign.id}")
                 # Try to get quality scores
                 try:
-                    prompts = campaign.metadata.get("prompts", [])
-                    quality_scores = await self.quality_judge.evaluate_campaign_results(
-                        campaign.results, prompts
-                    )
+                    # Get prompts based on campaign level
+                    if campaign_level == 3 or is_experiment:
+                        prompts = campaign.metadata.get("prompts", [])
+                        # For Level 3, pass results as-is
+                        quality_scores = await self.quality_judge.evaluate_campaign_results(
+                            campaign.results, prompts
+                        )
+                    else:
+                        # For Level 2, use blinded results but handle mapping
+                        # Extract prompts in the same order as variants
+                        prompts = [v["prompt"] for v in campaign.variants]
+                        
+                        # Pass results as-is (with blinded IDs)
+                        quality_scores_blinded = await self.quality_judge.evaluate_campaign_results(
+                            campaign.results, prompts
+                        )
+                        
+                        # Map quality scores from blinded IDs back to original IDs
+                        quality_scores = {}
+                        for orig_id, blinded_id in blinding_map.items():
+                            if blinded_id in quality_scores_blinded:
+                                quality_scores[orig_id] = quality_scores_blinded[blinded_id]
+                    
+                    logger.info(f"Quality scores received: {quality_scores}")
                     
                     # Add quality scores to variant stats
                     for variant_id, scores in quality_scores.items():
@@ -1509,6 +2046,8 @@ class AkabServer(SubstrateMCP):
                             conclusion = f"{winner} has the highest quality score: {best_quality:.1f}"
                 except Exception as e:
                     # Fall back to execution time
+                    import traceback
+                    logger.error(f"Quality evaluation failed: {e}\n{traceback.format_exc()}")
                     print(f"Quality evaluation failed in analysis: {e}")
                     primary_metric = "execution_time"
             
@@ -1654,7 +2193,12 @@ class AkabServer(SubstrateMCP):
     
     def _estimate_campaign_cost(self, campaign: Campaign) -> float:
         """Estimate campaign cost from results"""
-        total_cost = sum(r.get("cost", 0) for r in campaign.results if r.get("success", False))
+        # Handle both single-turn 'cost' and multi-turn 'total_cost'
+        total_cost = sum(
+            r.get("total_cost", r.get("cost", 0)) 
+            for r in campaign.results 
+            if r.get("success", False)
+        )
         return round(total_cost, 4)
     
     def _calculate_campaign_costs(self, campaign: Campaign) -> Dict[str, Any]:
@@ -1668,9 +2212,11 @@ class AkabServer(SubstrateMCP):
         reverse_map = {v: k for k, v in blinding_map.items()}
         
         for result in campaign.results:
-            if result.get("success", False) and "cost" in result:
-                cost = result["cost"]
-                total_cost += cost
+            if result.get("success", False):
+                # Handle both single-turn 'cost' and multi-turn 'total_cost'
+                cost = result.get("total_cost", result.get("cost", 0))
+                if cost > 0:
+                    total_cost += cost
                 
                 # Find original variant
                 blinded_id = result.get("variant")

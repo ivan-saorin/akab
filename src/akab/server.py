@@ -273,7 +273,7 @@ akab_execute_campaign(
         """Register all MCP tools"""
         
         @self.tool(name="akab_quick_compare")
-        async def quick_compare(ctx, prompt: str, providers: List[str] = None, 
+        async def quick_compare(prompt: str, providers: List[str] = None, 
                               constraints: Dict[str, Any] = None):
             """Quick comparison of prompt across multiple providers"""
             if providers is None:
@@ -282,7 +282,7 @@ akab_execute_campaign(
             return await self.quick_compare(prompt, providers, constraints)
         
         @self.tool(name="akab_create_campaign")
-        async def create_campaign(ctx, name: str, description: str, 
+        async def create_campaign(name: str, description: str, 
                                 variants: List[Dict[str, Any]] = None,
                                 base_prompt: str = None,
                                 models: List[Dict[str, str]] = None,
@@ -324,44 +324,44 @@ akab_execute_campaign(
                                             models, enhancement_config, success_criteria)
         
         @self.tool(name="akab_execute_campaign")
-        async def execute_campaign(ctx, campaign_id: str, iterations: int = 1,
+        async def execute_campaign(campaign_id: str, iterations: int = 1,
                                   multi_turn: bool = None, max_turns: int = 10,
                                   target_tokens: Optional[int] = None):
             """Execute A/B testing campaign with optional multi-turn support"""
             return await self.execute_campaign(campaign_id, iterations, multi_turn, max_turns, target_tokens)
         
         @self.tool(name="akab_analyze_results")
-        async def analyze_results(ctx, campaign_id: str):
+        async def analyze_results(campaign_id: str):
             """Analyze campaign results with statistical rigor"""
             return await self.analyze_results(campaign_id)
         
         @self.tool(name="akab_list_campaigns")
-        async def list_campaigns(ctx, status: str = None):
+        async def list_campaigns(status: str = None):
             """List all A/B testing campaigns"""
             return await self.list_campaigns(status)
         
         @self.tool(name="akab_cost_report")
-        async def cost_report(ctx, campaign_id: str = None):
+        async def cost_report(campaign_id: str = None):
             """Get cost report for campaigns"""
             return await self.cost_report(campaign_id)
         
         @self.tool(name="akab_sampling_callback")
-        async def sampling_callback(ctx, request_id: str, response: str):
+        async def sampling_callback(request_id: str, response: str):
             """Handle sampling responses from Claude"""
             return await self.sampling_manager.handle_callback(request_id, response)
         
         @self.tool(name="akab_unlock")
-        async def akab_unlock(ctx, id: str):
+        async def akab_unlock(id: str):
             """Unlock campaign or experiment to reveal mappings and archive"""
             return await self.unlock(id)
         
         @self.tool(name="akab_list_scrambled_models")
-        async def list_scrambled_models(ctx):
+        async def list_scrambled_models():
             """List available scrambled model IDs for Level 3 experiments"""
             return await self.list_scrambled_models()
         
         @self.tool(name="akab_create_experiment")
-        async def create_experiment(ctx, name: str, description: str, hypothesis: str,
+        async def create_experiment(name: str, description: str, hypothesis: str,
                                   variants: List[str], prompts: List[str],
                                   iterations_per_prompt: int = 10,
                                   success_criteria: Dict[str, Any] = None):
@@ -370,12 +370,12 @@ akab_execute_campaign(
                                               prompts, iterations_per_prompt, success_criteria)
         
         @self.tool(name="akab_reveal_experiment")
-        async def reveal_experiment(ctx, experiment_id: str):
+        async def reveal_experiment(experiment_id: str):
             """Reveal Level 3 experiment results after statistical significance"""
             return await self.reveal_experiment(experiment_id)
         
         @self.tool(name="akab_diagnose_experiment")
-        async def diagnose_experiment(ctx, experiment_id: str, force_reveal: bool = False):
+        async def diagnose_experiment(experiment_id: str, force_reveal: bool = False):
             """Diagnose why a Level 3 experiment hasn't reached significance"""
             return await self.diagnose_experiment(experiment_id, force_reveal)
     

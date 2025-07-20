@@ -55,18 +55,21 @@ Even well-intentioned researchers cannot fully eliminate these biases through wi
 AKAB provides three levels of testing, each with appropriate blinding:
 
 #### Level 1 - Quick Compare (No Blinding)
+
 - **Purpose**: Debugging, exploration, improvement testing
 - **Blinding**: None - full visibility for rapid iteration
 - **Winner Selection**: Human judgment only
 - **Use Case**: "Does this prompt work better than that one?"
 
 #### Level 2 - Campaign (Execution Blinding)
+
 - **Purpose**: Standard A/B testing with debug capability
 - **Blinding**: During execution, unlockable after completion
 - **Winner Selection**: Automated based on success criteria
 - **Use Case**: "Which approach produces more concise responses?"
 
 #### Level 3 - Experiment (Triple Blinding)
+
 - **Purpose**: Unbiased scientific evaluation
 - **Blinding**: Complete - scrambled from startup
 - **Winner Selection**: Statistical significance required
@@ -75,6 +78,7 @@ AKAB provides three levels of testing, each with appropriate blinding:
 ### Why This Architecture is Unbreakable
 
 Since the entire `/krill/` directory is outside `allowed_directories`, the LLM cannot:
+
 - Read experiment files directly
 - Access mapping files
 - Browse the directory structure
@@ -182,6 +186,7 @@ experiment = akab:create_experiment(
 ### 4. Execution Phase
 
 When tests run:
+
 1. **Level 1**: Direct execution with clear names
 2. **Level 2**: AKAB blinds during execution, stores mapping
 3. **Level 3**: AKAB maps scrambled IDs to real models internally
@@ -369,13 +374,14 @@ unlocked = akab:akab_unlock(experiment_id)
 └── metadata.json     # Archive metadata
 ```
 
-#### Unlock Rules:
+#### Unlock Rules
 
 - **Level 1**: No unlocking needed (never blinded)
 - **Level 2**: Can unlock anytime after execution
 - **Level 3**: Must be revealed first (statistical significance achieved)
 
 If you try to unlock an incomplete or unrevealed experiment:
+
 ```python
 # Incomplete experiment
 error = akab:akab_unlock(incomplete_experiment_id)
@@ -469,6 +475,7 @@ The diagnostic tool detects:
 ### Handling Failed Experiments
 
 1. **First, diagnose without revealing:**
+
    ```python
    diagnosis = akab:diagnose_experiment(experiment_id)
    ```
@@ -479,6 +486,7 @@ The diagnostic tool detects:
    - Refine prompts or criteria
 
 3. **Only force reveal if abandoning:**
+
    ```python
    # Last resort - breaks blinding!
    diagnosis = akab:diagnose_experiment(experiment_id, force_reveal=True)

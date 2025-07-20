@@ -140,64 +140,6 @@ async def execute_campaign(self, campaign_id: str, iterations: int = 1,
         return self.create_error_response(str(e))
 ```
 
-## 5. Add new tool for enhanced campaign creation
-
-```python
-@self.tool(name="akab_create_enhanced_campaign")
-async def create_enhanced_campaign(ctx, name: str, description: str,
-                                 base_prompt: str, models: List[Dict[str, str]],
-                                 enhancement_config: Dict[str, Any] = None):
-    """Create campaign with automatic prompt enhancement and multi-turn support
-    
-    Args:
-        name: Campaign name
-        description: Campaign description
-        base_prompt: Base prompt to test
-        models: List of models with provider and size
-        enhancement_config: Configuration for enhancement and multi-turn
-        
-    Returns:
-        Created campaign with enhanced variants
-    """
-    try:
-        if enhancement_config is None:
-            enhancement_config = {
-                "enhance": True,
-                "include_baseline": True,
-                "multi_turn": True,
-                "target_tokens": 5000,
-                "strategy": "auto"
-            }
-        
-        # Create enhanced campaign configuration
-        campaign_config = await self.enhanced_executor.create_enhanced_campaign(
-            name=name,
-            description=description,
-            base_prompt=base_prompt,
-            models=models,
-            enhancement_config=enhancement_config
-        )
-        
-        # Create the campaign
-        campaign = await self.campaign_manager.create_campaign(**campaign_config)
-        
-        return self.create_response(
-            data={
-                "campaign_id": campaign.id,
-                "name": campaign.name,
-                "variants": len(campaign.variants),
-                "enhanced_variants": sum(1 for v in campaign.variants if "enhanced" in v["id"]),
-                "baseline_variants": sum(1 for v in campaign.variants if "baseline" in v["id"]),
-                "multi_turn_enabled": enhancement_config.get("multi_turn", False),
-                "target_tokens": enhancement_config.get("target_tokens")
-            },
-            message=f"Enhanced campaign '{name}' created with {len(campaign.variants)} variants"
-        )
-        
-    except Exception as e:
-        return self.create_error_response(str(e))
-```
-
 ## 6. Update analyze_results to handle multi-turn
 
 ```python

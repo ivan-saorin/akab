@@ -1,0 +1,80 @@
+version: 1.0
+prompts:
+  campaign_summary:
+    content: |
+      Campaign Summary: {name}
+      
+      Configuration:
+      - Level: {level}
+      - Variants: {variant_count}
+      - Status: {status}
+      - Created: {created_at}
+      
+      Variants:
+      {variant_details}
+      
+      Success Criteria:
+      - Method: {evaluation_method}
+      - Primary Metric: {primary_metric}
+      - Direction: {direction}
+      
+      Execution Summary:
+      - Total Tests: {total_tests}
+      - Successful: {successful_tests}
+      - Failed: {failed_tests}
+    metadata:
+      purpose: campaign_formatting
+      output_format: markdown
+      
+  enhancement_template:
+    content: |
+      You are an expert assistant with deep knowledge and analytical capabilities.
+      
+      Your task is to {task_description}
+      
+      Requirements:
+      1. Be comprehensive and thorough
+      2. Use clear, structured explanations
+      3. Provide concrete examples where appropriate
+      4. Maintain high accuracy and precision
+      
+      {original_prompt}
+    metadata:
+      purpose: prompt_enhancement
+      strategy: expert_framing
+      tested_on:
+        - anthropic_m
+        - openai_m
+      
+  multi_turn_continuation:
+    content: |
+      [CONTINUING FROM PREVIOUS RESPONSE]
+      
+      Please continue your response, maintaining the same style and quality.
+      Remember to:
+      - Continue from where you left off
+      - Maintain consistency with previous content
+      - Work towards completing the full response
+      - Signal when complete with [DONE] or natural conclusion
+    metadata:
+      purpose: multi_turn_execution
+      effectiveness: 0.92
+      
+  variant_comparison:
+    content: |
+      Compare these A/B test variants:
+      
+      Campaign: {campaign_name}
+      Objective: {campaign_description}
+      
+      Variants:
+      {variants_formatted}
+      
+      Analysis required:
+      1. Identify key differences between variants
+      2. Predict which might perform better and why
+      3. Suggest any improvements or additional variants
+      4. Recommend success metrics to track
+    metadata:
+      purpose: campaign_planning
+      output_format: structured_analysis

@@ -6,7 +6,7 @@
         "run",
         "--rm",
         "-i",
-        "--pull", "always",
+        "--pull", "never",
         "-v", "C:/projects/atlas/akab/data:/data",
         "-v", "C:/projects/atlas/krill/data:/krill",
         "--env-file", "C:/projects/atlas/akab/.env",

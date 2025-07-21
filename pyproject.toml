@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "akab"
-version = "1.0.0"
-description = "A/B Testing Framework MCP Server"
+version = "2.0.0"
+description = "A/B Testing Framework with Scientific Rigor - Built on Substrate"
 requires-python = ">=3.12"
 dependencies = [
     "mcp>=1.1.2",
@@ -17,8 +17,7 @@ dependencies = [
     "scipy>=1.11.0",
     "anthropic>=0.39.0",
     "openai>=1.54.4",
-    "google-generativeai>=0.3.0",
-    "substrate @ file:///substrate"
+    "google-generativeai>=0.3.0"
 ]
 
 [project.scripts]

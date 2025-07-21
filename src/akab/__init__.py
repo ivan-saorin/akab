@@ -1,3 +1,6 @@
-"""akab - A/B Testing Framework MCP Server"""
+"""AKAB - A/B Testing Framework with Scientific Rigor
 
-__version__ = "1.0.0"
+Built on substrate foundation for consistent experience across Atlas system.
+"""
+
+__version__ = "2.0.0"

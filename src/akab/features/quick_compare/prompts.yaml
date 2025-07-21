@@ -1,0 +1,54 @@
+version: 1.0
+prompts:
+  comparison_analysis:
+    content: |
+      Analyze these model responses for quality and effectiveness:
+      
+      Original Prompt: {prompt}
+      
+      Model Responses:
+      {responses}
+      
+      Evaluation Criteria:
+      1. Accuracy and correctness of information
+      2. Clarity and coherence of explanation
+      3. Completeness of response
+      4. Creativity and insight (if applicable)
+      5. Adherence to prompt requirements
+      
+      For each response, provide:
+      - Quality score (1-10)
+      - Key strengths
+      - Key weaknesses
+      - Overall assessment
+      
+      Finally, rank the responses from best to worst with justification.
+    metadata:
+      purpose: quality_evaluation
+      effectiveness: 0.85
+      tested_models:
+        - anthropic_m
+        - openai_m
+      
+  performance_summary:
+    content: |
+      Quick Comparison Results Summary:
+      
+      Test Parameters:
+      - Prompt: {prompt_preview}
+      - Models Tested: {model_count}
+      - Max Tokens: {max_tokens}
+      - Temperature: {temperature}
+      
+      Performance Metrics:
+      {metrics_table}
+      
+      Best Performer: {best_model}
+      - Tokens/Second: {best_tps}
+      - Response Quality: {best_quality}
+      
+      Recommendations:
+      {recommendations}
+    metadata:
+      purpose: results_formatting
+      output_format: markdown

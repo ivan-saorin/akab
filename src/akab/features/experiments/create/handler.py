@@ -16,7 +16,7 @@ async def create_experiment_handler(
     variants: List[str],
     prompts: List[str],
     iterations_per_prompt: int,
-    success_criteria: Optional[Dict[str, Any]],
+    success_criteria: Dict[str, Any],
     response_builder,
     reference_manager
 ) -> Dict[str, Any]:
@@ -67,6 +67,15 @@ async def create_experiment_handler(
             }
             campaign_variants.append(variant)
         
+        # Create variant mapping for Level 3 blinding
+        # Maps variant IDs to scrambled model IDs
+        variant_mapping = {}
+        for variant in campaign_variants:
+            # Extract scrambled ID from variant ID
+            # e.g., "variant_1_model_09f936fb" -> "model_09f936fb"
+            scrambled_id = variant["constraints"]["scrambled_id"]
+            variant_mapping[variant["id"]] = scrambled_id
+        
         # Create campaign with level=3
         campaign = Campaign(
             id=experiment_id,
@@ -89,6 +98,9 @@ async def create_experiment_handler(
             }
         )
         
+        # Add the variant mapping
+        campaign.variant_mapping = variant_mapping
+        
         # Save to vault (will go to /krill/experiments/ due to level=3)
         vault = CampaignVault()
         await vault.store_campaign(campaign)
@@ -110,12 +122,12 @@ async def create_experiment_handler(
                 response_builder.suggest_next(
                     "akab_execute_campaign",
                     "Execute the experiment",
-                    {"campaign_id": experiment_id}
+                    campaign_id=experiment_id
                 ),
                 response_builder.suggest_next(
                     "akab_reveal_experiment",
                     "Attempt to reveal results (requires statistical significance)",
-                    {"experiment_id": experiment_id}
+                    experiment_id=experiment_id
                 )
             ]
         )

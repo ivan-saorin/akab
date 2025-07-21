@@ -17,8 +17,8 @@ def register_quick_compare_tools(
     @server.tool()
     async def akab_quick_compare(
         prompt: str,
-        providers: Optional[List[str]] = None,
-        constraints: Optional[Dict[str, Any]] = None
+        providers: List[str] = [],
+        constraints: Dict[str, Any] = {}
     ) -> Dict[str, Any]:
         """Quick comparison of prompt across multiple providers
         

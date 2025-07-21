@@ -2,7 +2,7 @@
 from typing import Dict, Any, List, Optional
 import uuid
 import time
-from substrate.shared.models import MODEL_REGISTRY
+from substrate.shared.models import get_model_registry
 from ....core.vault import CampaignVault, Campaign
 
 
@@ -50,11 +50,11 @@ class CampaignCreateHandler:
         self,
         name: str,
         description: str,
-        variants: Optional[List[Dict[str, Any]]] = None,
+        models: List[str],
+        variants: List[Dict[str, Any]] = [],
         base_prompt: Optional[str] = None,
-        models: Optional[List[Dict[str, str]]] = None,
-        enhancement_config: Optional[Dict[str, Any]] = None,
-        success_criteria: Optional[Dict[str, Any]] = None
+        enhancement_config: Dict[str, Any] = {},
+        success_criteria: Dict[str, Any] = {}
     ) -> Dict[str, Any]:
         """Create a new campaign with two modes:
         
@@ -72,7 +72,14 @@ class CampaignCreateHandler:
         campaign_id = f"campaign_{int(time.time() * 1000)}"
         
         # Mode 2: Auto-generate variants from base prompt
-        if variants is None and base_prompt is not None and models is not None:
+        if not variants and base_prompt is not None:
+            # Use default models if none specified
+            if models is None:
+                models = [
+                    "anthropic_m",
+                    "openai_m",
+                    "google_m"
+                ]
             variants = await self._generate_variants_from_base(
                 base_prompt, models, enhancement_config
             )
@@ -128,11 +135,34 @@ class CampaignCreateHandler:
         )
         
         # Create variant mapping for blinding (Level 2)
+        # The mapping should point to resolvable model identifiers
         variant_mapping = {}
+        internal_mapping = {}  # Store actual model info internally
+        
         for variant in transformed_variants:
-            # Create blinded ID
-            blinded_id = f"blinded_{uuid.uuid4().hex[:8]}"
-            variant_mapping[variant["id"]] = blinded_id
+            variant_id = variant["id"]
+            
+            # Create model identifier from variant info
+            # First try to get size if available
+            size = variant.get("size", "m")  # Default to medium
+            if "size" not in variant:
+                # Try to infer size from model name
+                model_name = variant["model"]
+                for s, name in self.model_sizes.get(variant["provider"], {}).items():
+                    if name == model_name:
+                        size = s
+                        break
+            
+            # Create the model identifier
+            model_id = f"{variant['provider']}_{size}"
+            variant_mapping[variant_id] = model_id
+            
+            # Store full variant info for later use
+            internal_mapping[variant_id] = {
+                "provider": variant["provider"],
+                "model": variant["model"],
+                "size": size
+            }
         
         campaign.variant_mapping = variant_mapping
         
@@ -181,7 +211,7 @@ class CampaignCreateHandler:
     async def _generate_variants_from_base(
         self,
         base_prompt: str,
-        models: List[Dict[str, str]],
+        models: List[str],
         enhancement_config: Optional[Dict[str, Any]] = None
     ) -> List[Dict[str, Any]]:
         """Generate variants from base prompt and model specifications"""
@@ -195,9 +225,15 @@ class CampaignCreateHandler:
         include_baseline = enhancement_config.get("include_baseline", True)
         enhance = enhancement_config.get("enhance", False)
         
-        for model_spec in models:
-            provider = model_spec.get("provider")
-            size = model_spec.get("size", "m")
+        for model_id in models:
+            # Parse model identifier like "anthropic_m" into provider and size
+            parts = model_id.split('_')
+            if len(parts) != 2:
+                # Skip invalid model identifiers
+                continue
+            
+            provider = parts[0]
+            size = parts[1]
             
             # Get actual model name
             if provider in self.model_sizes:
@@ -212,6 +248,7 @@ class CampaignCreateHandler:
                 baseline_variant = {
                     "id": f"{provider}_{size}_baseline",
                     "provider": provider,
+                    "size": size,  # Add size field
                     "model": model_name,
                     "prompt": base_prompt,
                     "multi_turn": multi_turn,
@@ -228,6 +265,7 @@ class CampaignCreateHandler:
                 enhanced_variant = {
                     "id": f"{provider}_{size}_enhanced",
                     "provider": provider,
+                    "size": size,  # Add size field
                     "model": model_name,
                     "prompt": enhanced_prompt,
                     "multi_turn": multi_turn,

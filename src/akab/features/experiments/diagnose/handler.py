@@ -22,7 +22,7 @@ async def diagnose_experiment_handler(
         
         # Load experiment
         vault = CampaignVault()
-        campaign = await vault.load_campaign(experiment_id)
+        campaign = await vault.get_campaign(experiment_id)
         
         if not campaign:
             return response_builder.error(f"Experiment '{experiment_id}' not found")
@@ -176,13 +176,13 @@ async def diagnose_experiment_handler(
                 response_builder.suggest_next(
                     "akab_execute_campaign",
                     f"Run {diagnosis['convergence']['estimated_iterations_needed']} more iterations",
-                    {"campaign_id": experiment_id, 
-                     "iterations": diagnosis['convergence']['estimated_iterations_needed']}
+                    campaign_id=experiment_id, 
+                    iterations=diagnosis['convergence']['estimated_iterations_needed']
                 ),
                 response_builder.suggest_next(
                     "akab_reveal_experiment",
                     "Try to reveal results",
-                    {"experiment_id": experiment_id}
+                    experiment_id=experiment_id
                 )
             ]
         )

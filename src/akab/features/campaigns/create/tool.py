@@ -18,11 +18,11 @@ def register_create_campaign_tools(
     async def akab_create_campaign(
         name: str,
         description: str,
-        variants: Optional[List[Dict[str, Any]]] = None,
+        models: List[str],
+        variants: List[Dict[str, Any]] = [],
         base_prompt: Optional[str] = None,
-        models: Optional[List[Dict[str, str]]] = None,
-        enhancement_config: Optional[Dict[str, Any]] = None,
-        success_criteria: Optional[Dict[str, Any]] = None
+        enhancement_config: Dict[str, Any] = {},
+        success_criteria: Dict[str, Any] = {}
     ) -> Dict[str, Any]:
         """Create new A/B testing campaign with flexible configuration
         
@@ -48,8 +48,9 @@ def register_create_campaign_tools(
         ```
         base_prompt="Your prompt here",
         models=[
-            {"provider": "anthropic", "size": "m"},
-            {"provider": "openai", "size": "l"}
+            "anthropic_m",
+            "openai_l",
+            "google_m"
         ],
         enhancement_config={
             "enhance": true,  # Use Synapse enhancement
@@ -64,7 +65,7 @@ def register_create_campaign_tools(
             description: Campaign description
             variants: Direct variant specifications (Mode 1)
             base_prompt: Base prompt for auto-generation (Mode 2)
-            models: Models for auto-generation (Mode 2)
+            models: List of model identifiers (e.g., ["anthropic_m", "openai_l"]) for auto-generation (Mode 2)
             enhancement_config: Enhancement options (Mode 2)
             success_criteria: How to determine winner:
                             - metric: "tokens_per_second" | "quality_score" | "cost_efficiency"

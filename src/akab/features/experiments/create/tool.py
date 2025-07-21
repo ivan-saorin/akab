@@ -14,7 +14,7 @@ def register_create_experiment_tool(server, response_builder, reference_manager)
         variants: List[str],
         prompts: List[str],
         iterations_per_prompt: int = 10,
-        success_criteria: Optional[Dict[str, Any]] = None
+        success_criteria: Dict[str, Any] = {}
     ) -> Dict[str, Any]:
         """Create Level 3 scientific experiment with complete blinding
         

@@ -56,6 +56,17 @@ class BlindedHermes:
                 f"Available variants: {list(self.mapping.keys())}"
             )
         
+        # Check if this is a scrambled model ID (Level 3)
+        if model_id.startswith("model_") and len(model_id) == 14:  # "model_" + 8 hex chars
+            # Import here to avoid circular imports
+            from ....server_fastmcp import SCRAMBLED_MODELS
+            
+            # Resolve scrambled ID to actual model identifier
+            actual_model_id = SCRAMBLED_MODELS.get(model_id)
+            if not actual_model_id:
+                raise ValueError(f"Unknown scrambled model: {model_id}")
+            model_id = actual_model_id
+        
         # Parse model ID (format: provider_size)
         try:
             registry = get_model_registry()

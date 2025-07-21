@@ -22,7 +22,7 @@ async def reveal_experiment_handler(
         
         # Load experiment from vault
         vault = CampaignVault()
-        campaign = await vault.load_campaign(experiment_id)
+        campaign = await vault.get_campaign(experiment_id)
         
         if not campaign:
             return response_builder.error(f"Experiment '{experiment_id}' not found")
@@ -152,7 +152,7 @@ async def reveal_experiment_handler(
         campaign.metadata["revealed"] = True
         campaign.metadata["reveal_timestamp"] = datetime.utcnow().isoformat()
         campaign.metadata["model_mappings"] = mappings
-        await vault.save_campaign(campaign)
+        await vault.update_campaign(campaign)
         
         return response_builder.success(
             data={

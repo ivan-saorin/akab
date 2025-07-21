@@ -18,13 +18,12 @@ class QuickCompareHandler:
     async def compare(
         self,
         prompt: str,
-        providers: Optional[List[str]] = None,
-        constraints: Optional[Dict[str, Any]] = None
+        providers: List[str] = [],
+        constraints: Dict[str, Any] = {}
     ) -> Dict[str, Any]:
         """Execute quick comparison across providers"""
         
         # Default constraints
-        constraints = constraints or {}
         max_tokens = constraints.get("max_tokens", 1000)
         temperature = constraints.get("temperature", 0.7)
         models_per_provider = constraints.get("models_per_provider", 1)

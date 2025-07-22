@@ -59,7 +59,7 @@ class BlindedHermes:
         # Check if this is a scrambled model ID (Level 3)
         if model_id.startswith("model_") and len(model_id) == 14:  # "model_" + 8 hex chars
             # Import here to avoid circular imports
-            from ....server_fastmcp import SCRAMBLED_MODELS
+            from ....server import SCRAMBLED_MODELS
             
             # Resolve scrambled ID to actual model identifier
             actual_model_id = SCRAMBLED_MODELS.get(model_id)

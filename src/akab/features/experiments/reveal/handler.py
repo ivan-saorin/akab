@@ -15,7 +15,7 @@ async def reveal_experiment_handler(
     """Reveal experiment results if statistical significance is reached"""
     try:
         # Import here to avoid circular imports
-        from ....server_fastmcp import SCRAMBLED_MODELS
+        from ....server import SCRAMBLED_MODELS
         from ....core.vault import CampaignVault
         from ....core.laboratory import LABORATORY
 

@@ -1,7 +1,7 @@
 """Entry point for AKAB FastMCP server"""
 
 import sys
-from .server_fastmcp import mcp, register_all_features
+from .server import mcp, register_all_features
 
 
 def main():

@@ -23,7 +23,7 @@ async def create_experiment_handler(
     """Create a Level 3 scientific experiment"""
     try:
         # Import here to avoid circular imports
-        from ....server_fastmcp import SCRAMBLED_MODELS
+        from ....server import SCRAMBLED_MODELS
         from ....core.vault import CampaignVault
         from ....core.vault import Campaign
         from enum import Enum

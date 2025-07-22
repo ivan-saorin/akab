@@ -16,7 +16,7 @@ async def diagnose_experiment_handler(
     """Diagnose why an experiment hasn't reached significance"""
     try:
         # Import here to avoid circular imports
-        from ....server_fastmcp import SCRAMBLED_MODELS
+        from ....server import SCRAMBLED_MODELS
         from ....core.vault import CampaignVault
 
         

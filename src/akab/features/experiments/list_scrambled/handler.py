@@ -9,7 +9,7 @@ async def list_scrambled_models_handler(response_builder) -> Dict[str, Any]:
     """List available scrambled model IDs for Level 3 experiments"""
     try:
         # Import here to avoid circular imports
-        from ....server_fastmcp import SCRAMBLED_MODELS
+        from ....server import SCRAMBLED_MODELS
         
         # Get list of scrambled IDs (without revealing mappings)
         scrambled_ids = sorted(list(SCRAMBLED_MODELS.keys()))
